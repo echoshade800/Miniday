@@ -5,7 +5,7 @@ const CATEGORIES_KEY = 'MiniDays_categories';
 
 // Default categories
 const DEFAULT_CATEGORIES = [
-  { id: '1', name: 'Life', icon: '🌟' },
+  { id: '1', name: 'Life', icon: '🌞' }, // Changed from 🌟 to 🌞
   { id: '2', name: 'Work', icon: '💼' },
   { id: '3', name: 'Anniversary', icon: '🎉' },
   { id: '4', name: 'Love', icon: '❤️' },

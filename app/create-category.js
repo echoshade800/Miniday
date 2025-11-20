@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
+import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * Create Category Screen
@@ -39,6 +41,8 @@ const EMOJI_OPTIONS = [
 export default function CreateCategoryScreen() {
   const router = useRouter();
   const { addCategory } = useAppStore();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('🌟');
   const [loading, setLoading] = useState(false);
@@ -69,9 +73,9 @@ export default function CreateCategoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
+        <AnimatedScaleTouchable onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
+        </AnimatedScaleTouchable>
         <Text style={styles.headerTitle}>New Category</Text>
         <View style={{ width: 24 }} />
       </View>
@@ -84,7 +88,7 @@ export default function CreateCategoryScreen() {
             placeholder="e.g., Health, Travel, Study"
             value={name}
             onChangeText={setName}
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.placeholder}
           />
         </View>
 
@@ -92,7 +96,7 @@ export default function CreateCategoryScreen() {
           <Text style={styles.label}>Icon</Text>
           <View style={styles.iconGrid}>
             {EMOJI_OPTIONS.map((emoji) => (
-              <TouchableOpacity
+              <AnimatedScaleTouchable
                 key={emoji}
                 style={[
                   styles.iconButton,
@@ -100,108 +104,113 @@ export default function CreateCategoryScreen() {
                 ]}
                 onPress={() => setSelectedIcon(emoji)}>
                 <Text style={styles.iconEmoji}>{emoji}</Text>
-              </TouchableOpacity>
+              </AnimatedScaleTouchable>
             ))}
           </View>
         </View>
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+        <AnimatedScaleTouchable
+          style={[styles.saveButton, { borderColor: theme.colors.primary }, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={loading}
-          activeOpacity={0.8}>
-          <Text style={styles.saveButtonText}>
+          disabled={loading}>
+          <Text style={[styles.saveButtonText, { color: theme.colors.primary }]}>
             {loading ? 'Creating...' : 'Create Category'}
           </Text>
-        </TouchableOpacity>
+        </AnimatedScaleTouchable>
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  content: {
-    flex: 1,
-  },
-  field: {
-    backgroundColor: '#fff',
-    marginTop: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  input: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#333',
-  },
-  iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  iconButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#f5f5f5',
-  },
-  iconButtonActive: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
-  },
-  iconEmoji: {
-    fontSize: 28,
-  },
-  footer: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  saveButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    headerTitle: {
+      ...theme.typography.h2,
+      color: theme.colors.text,
+    },
+    content: {
+      flex: 1,
+    },
+    field: {
+      backgroundColor: theme.colors.surface,
+      marginTop: 12,
+      marginHorizontal: 20,
+      paddingHorizontal: 20,
+      paddingVertical: 18,
+      borderRadius: theme.radii.lg,
+      ...theme.shadow.soft,
+    },
+    label: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginBottom: theme.spacing.md,
+    },
+    input: {
+      backgroundColor: theme.colors.card,
+      borderRadius: theme.radii.md,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.md + 2,
+      ...theme.typography.body,
+      color: theme.colors.text,
+      borderWidth: theme.input.borderWidth,
+      borderColor: theme.colors.divider,
+    },
+    iconGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+    },
+    iconButton: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: theme.colors.divider,
+    },
+    iconButtonActive: {
+      backgroundColor: theme.colors.accentLight,
+      borderColor: theme.colors.primary,
+    },
+    iconEmoji: {
+      fontSize: 28,
+    },
+    footer: {
+      padding: 20,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.border,
+    },
+    saveButton: {
+      paddingVertical: 16,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      ...theme.shadow.soft,
+      borderWidth: 1,
+      backgroundColor: 'transparent',
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+    saveButtonText: {
+      ...theme.typography.h3,
+      fontWeight: '700',
+    },
+  });

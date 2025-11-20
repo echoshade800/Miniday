@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAppStore } from '../store/useAppStore';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * App Entry Point
@@ -10,7 +10,8 @@ import { useAppStore } from '../store/useAppStore';
 
 export default function Index() {
   const router = useRouter();
-  const hasCompletedOnboarding = useAppStore((state) => state.hasCompletedOnboarding);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     // For this version, skip onboarding and go directly to tabs
@@ -24,16 +25,17 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#2196F3" />
+      <ActivityIndicator size="large" color={theme.colors.primary} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: theme.colors.background,
+    },
+  });

@@ -1,7 +1,11 @@
+import { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * About & Help Screen
@@ -24,68 +28,71 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function AboutScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const renderInfoRow = (icon, title, subtitle) => (
-    <TouchableOpacity style={styles.infoRow} activeOpacity={0.7}>
+    <AnimatedScaleTouchable style={styles.infoRow}>
       <View style={styles.infoLeft}>
-        <Ionicons name={icon} size={24} color="#2196F3" />
+        <Ionicons name={icon} size={24} color={theme.colors.primary} />
         <View style={styles.infoTextContainer}>
           <Text style={styles.infoTitle}>{title}</Text>
           {subtitle && <Text style={styles.infoSubtitle}>{subtitle}</Text>}
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#999" />
-    </TouchableOpacity>
+      <Ionicons name="chevron-forward" size={20} color={theme.colors.body} />
+    </AnimatedScaleTouchable>
   );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
+        <AnimatedScaleTouchable onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
+        </AnimatedScaleTouchable>
         <Text style={styles.headerTitle}>About & Help</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.heroSection}>
+        <LinearGradient colors={[theme.colors.card, theme.colors.accentLight]} style={styles.heroSection}>
           <View style={styles.iconContainer}>
-            <Ionicons name="calendar" size={64} color="#2196F3" />
+            <Ionicons name="calendar" size={64} color={theme.colors.primary} />
           </View>
           <Text style={styles.appName}>Mini Days</Text>
+          <Text style={styles.emojiDecor}>✨ 💗 🎀</Text>
           <Text style={styles.appTagline}>
             A beautifully simple way to track countdowns, anniversaries, and important
             dates.
           </Text>
           <Text style={styles.version}>Version 1.0.0</Text>
-        </View>
+        </LinearGradient>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Features</Text>
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Track unlimited countdowns</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Organize by custom categories</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Pin important events</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Set up repeating events</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Morning reminders at 8:00 AM</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
               <Text style={styles.featureText}>Offline-first storage</Text>
             </View>
           </View>
@@ -113,126 +120,144 @@ export default function AboutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  content: {
-    flex: 1,
-  },
-  heroSection: {
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    paddingVertical: 40,
-    marginBottom: 20,
-  },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  appTagline: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  version: {
-    fontSize: 14,
-    color: '#999',
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  featureList: {
-    backgroundColor: '#fff',
-    paddingVertical: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  featureText: {
-    fontSize: 15,
-    color: '#333',
-    marginLeft: 12,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  infoLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  infoTextContainer: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 2,
-  },
-  infoSubtitle: {
-    fontSize: 13,
-    color: '#999',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 8,
-  },
-  copyright: {
-    fontSize: 12,
-    color: '#ccc',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+    },
+    headerTitle: {
+      ...theme.typography.h2,
+      color: theme.colors.text,
+    },
+    content: {
+      flex: 1,
+    },
+    heroSection: {
+      alignItems: 'center',
+      paddingVertical: 40,
+      marginHorizontal: 20,
+      marginTop: 20,
+      marginBottom: 20,
+      borderRadius: theme.radii.xl,
+      ...theme.shadow.soft,
+    },
+    iconContainer: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: 'rgba(255,255,255,0.5)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 20,
+    },
+    appName: {
+      ...theme.typography.h1,
+      fontSize: 32,
+      color: theme.colors.text,
+      marginBottom: theme.spacing.sm,
+    },
+    emojiDecor: {
+      fontSize: 24,
+      marginBottom: 12,
+    },
+    appTagline: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      paddingHorizontal: theme.spacing['2xl'],
+      marginBottom: theme.spacing.lg,
+      fontWeight: '500',
+    },
+    version: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textMuted,
+      opacity: 0.8,
+    },
+    section: {
+      marginBottom: theme.spacing.xl,
+    },
+    sectionTitle: {
+      ...theme.typography.caption,
+      fontWeight: '700',
+      color: theme.colors.textMuted,
+      paddingHorizontal: theme.spacing.xl,
+      marginBottom: theme.spacing.md,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    featureList: {
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 8,
+      marginHorizontal: 20,
+      borderRadius: theme.radii.lg,
+      ...theme.shadow.soft,
+    },
+    featureItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 20,
+    },
+    featureText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.text,
+      marginLeft: theme.spacing.md,
+      fontWeight: '500',
+    },
+    infoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: theme.colors.surface,
+      paddingVertical: 16,
+      paddingHorizontal: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      marginHorizontal: 20,
+      borderRadius: theme.radii.lg,
+      marginBottom: 8,
+      ...theme.shadow.soft,
+    },
+    infoLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    infoTextContainer: {
+      marginLeft: 16,
+      flex: 1,
+    },
+    infoTitle: {
+      ...theme.typography.body,
+      color: theme.colors.text,
+      marginBottom: 2,
+      fontWeight: '600',
+    },
+    infoSubtitle: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textMuted,
+    },
+    footer: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing['2xl'],
+    },
+    footerText: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textMuted,
+      marginBottom: theme.spacing.sm,
+    },
+    copyright: {
+      ...theme.typography.caption,
+      color: theme.colors.textMuted,
+      opacity: 0.6,
+    },
+  });

@@ -1,35 +1,30 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, Modal, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import StorageUtils from '../../utils/StorageUtils';
+import { SECTION_EMOJIS } from '../../utils/theme';
+import { useAppStore } from '../../store/useAppStore';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Profile & Settings Screen
- * Purpose: User profile, app settings, and preferences
- *
- * Features:
- * - User info display (stub)
- * - App preferences toggles (stub)
- * - Data export option (stub)
- * - Navigation to About & Help
- *
- * To extend:
- * - Implement real user authentication
- * - Add functional settings (dark mode, notifications)
- * - Implement actual data export/import
- * - Add cloud sync options
  */
-
 export default function ProfileScreen() {
   const router = useRouter();
+  const { themeMode, setThemeMode, loadThemeMode } = useAppStore();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const isDarkMode = themeMode === 'dark';
   const [userData, setUserData] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
   const [defaultReminder, setDefaultReminder] = useState(true);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
 
   useEffect(() => {
     loadUserData();
+    loadThemeMode();
   }, []);
 
   const loadUserData = async () => {
@@ -37,201 +32,309 @@ export default function ProfileScreen() {
     setUserData(data);
   };
 
-  const renderSettingRow = (icon, title, value, onPress) => (
-    <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+  const handleDarkModeToggle = async () => {
+    await setThemeMode(isDarkMode ? 'light' : 'dark');
+  };
+
+  const renderSettingRow = (emoji, title, value, onPress) => (
+    <AnimatedScaleTouchable style={[styles.settingRow, { backgroundColor: theme.colors.surface }]} onPress={onPress} activeScale={0.97}>
       <View style={styles.settingLeft}>
-        <Ionicons name={icon} size={24} color="#2196F3" />
-        <Text style={styles.settingTitle}>{title}</Text>
+        <View style={[styles.emojiBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
+          <Text style={styles.emoji}>{emoji}</Text>
+        </View>
+        <Text style={[styles.settingTitle, { color: theme.colors.title }]}>{title}</Text>
       </View>
       {typeof value === 'boolean' ? (
-        <View style={[styles.toggle, value && styles.toggleActive]}>
-          <View style={[styles.toggleThumb, value && styles.toggleThumbActive]} />
-        </View>
+          <Switch
+            value={value}
+            onValueChange={onPress}
+            trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+            thumbColor={theme.colors.card}
+            ios_backgroundColor={theme.colors.border}
+          />
       ) : (
-        <Ionicons name="chevron-forward" size={20} color="#999" />
+        <Ionicons name="chevron-forward" size={20} color={theme.colors.body} />
       )}
-    </TouchableOpacity>
+    </AnimatedScaleTouchable>
   );
 
+  const handleSignUp = (provider) => {
+    console.log(`Sign up with ${provider}`);
+    Alert.alert('Coming Soon', `Sign up with ${provider} flow coming soon`);
+    // TODO: Implement actual sign up flow with Expo AuthSession
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.title }]}>Profile</Text>
       </View>
 
-      <ScrollView>
-        <View style={styles.section}>
-          <View style={styles.profileCard}>
-            <View style={styles.avatarContainer}>
-              <Ionicons name="person" size={48} color="#2196F3" />
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.sectionCard}>
+          <View style={[styles.profileCard, { backgroundColor: theme.colors.surface, ...theme.shadow.soft }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}>
+              <Text style={styles.avatarEmoji}>{SECTION_EMOJIS.avatar}</Text>
             </View>
-            <Text style={styles.userName}>
-              {userData?.userName || 'Guest User'}
-            </Text>
-            <Text style={styles.userEmail}>
-              {userData?.email || 'No email set'}
-            </Text>
+            <Text style={[styles.userName, { color: theme.colors.title }]}>{userData?.userName || 'Guest User'}</Text>
+            <Text style={[styles.userEmail, { color: theme.colors.body }]}>{userData?.email || 'No email set'}</Text>
+            <AnimatedScaleTouchable
+              style={[styles.editButton, { borderColor: theme.colors.primary }]}
+              onPress={() => setShowRegisterModal(true)}>
+              <Text style={[styles.editButtonText, { color: theme.colors.primary }]}>Create Account</Text>
+            </AnimatedScaleTouchable>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          {renderSettingRow(
-            'moon-outline',
-            'Dark Theme',
-            darkMode,
-            () => setDarkMode(!darkMode)
-          )}
-          {renderSettingRow(
-            'notifications-outline',
-            'Default Reminder',
-            defaultReminder,
-            () => setDefaultReminder(!defaultReminder)
-          )}
-          {renderSettingRow(
-            'folder-outline',
-            'Preferred Category',
-            null,
-            () => {}
-          )}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionEmoji}>{SECTION_EMOJIS.preferences}</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.title }]}>Preferences</Text>
+          </View>
+          <View style={[styles.sectionBody, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}>
+            {renderSettingRow('🌙', 'Dark Theme', isDarkMode, handleDarkModeToggle)}
+            {renderSettingRow(
+              '🔔',
+              'Default Reminder',
+              defaultReminder,
+              () => setDefaultReminder(!defaultReminder)
+            )}
+            {renderSettingRow('🗂️', 'Preferred Category', null, () => {})}
+          </View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data</Text>
-          {renderSettingRow(
-            'download-outline',
-            'Export Data',
-            null,
-            () => {}
-          )}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionEmoji}>{SECTION_EMOJIS.data}</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.title }]}>Data</Text>
+          </View>
+          <View style={[styles.sectionBody, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}>{renderSettingRow('📤', 'Export Data', null, () => {})}</View>
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          {renderSettingRow(
-            'information-circle-outline',
-            'About & Help',
-            null,
-            () => router.push('/about')
-          )}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionEmoji}>{SECTION_EMOJIS.about}</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.title }]}>About</Text>
+          </View>
+          <View style={[styles.sectionBody, { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border }]}>
+            {renderSettingRow('💡', 'About & Help', null, () => router.push('/about'))}
+          </View>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Mini Days v1.0.0</Text>
-          <Text style={styles.footerSubtext}>
-            A beautifully simple way to track countdowns
-          </Text>
+          <Text style={[styles.footerText, { color: theme.colors.body }]}>Mini Days v1.0.0</Text>
+          <Text style={[styles.footerSubtext, { color: theme.colors.body }]}>A beautifully simple way to track countdowns</Text>
         </View>
       </ScrollView>
+
+      {/* Register Modal */}
+      <Modal
+        visible={showRegisterModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRegisterModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowRegisterModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.body} />
+              </TouchableOpacity>
+              <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Create your MiniDays account</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <View style={styles.registerButtons}>
+              <AnimatedScaleTouchable
+                style={[styles.registerButton, { borderColor: theme.colors.primary }]}
+                onPress={() => handleSignUp('Apple')}>
+                <Ionicons name="logo-apple" size={20} color={theme.colors.primary} />
+                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Apple</Text>
+              </AnimatedScaleTouchable>
+
+              <AnimatedScaleTouchable
+                style={[styles.registerButton, { borderColor: theme.colors.primary }]}
+                onPress={() => handleSignUp('Google')}>
+                <Ionicons name="logo-google" size={20} color={theme.colors.primary} />
+                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Google</Text>
+              </AnimatedScaleTouchable>
+
+              <AnimatedScaleTouchable
+                style={[styles.registerButton, { borderColor: theme.colors.primary }]}
+                onPress={() => handleSignUp('Facebook')}>
+                <Ionicons name="logo-facebook" size={20} color={theme.colors.primary} />
+                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Facebook</Text>
+              </AnimatedScaleTouchable>
+
+              <AnimatedScaleTouchable
+                style={[styles.registerButton, { borderColor: theme.colors.primary }]}
+                onPress={() => handleSignUp('Email')}>
+                <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
+                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Sign up with email</Text>
+              </AnimatedScaleTouchable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  section: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#999',
-    paddingHorizontal: 20,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  profileCard: {
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    paddingVertical: 32,
-    marginHorizontal: 20,
-    borderRadius: 12,
-  },
-  avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    color: '#999',
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 16,
-  },
-  toggle: {
-    width: 48,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#ddd',
-    padding: 2,
-    justifyContent: 'center',
-  },
-  toggleActive: {
-    backgroundColor: '#2196F3',
-  },
-  toggleThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-  },
-  toggleThumbActive: {
-    alignSelf: 'flex-end',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 4,
-  },
-  footerSubtext: {
-    fontSize: 12,
-    color: '#ccc',
-    textAlign: 'center',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      paddingHorizontal: 24,
+      paddingVertical: 16,
+    },
+    headerTitle: {
+      ...theme.typography.h1,
+      textAlign: 'center',
+    },
+    scrollContent: {
+      paddingBottom: 60,
+    },
+    sectionCard: {
+      marginHorizontal: 20,
+      marginBottom: 20,
+    },
+    profileCard: {
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      paddingVertical: theme.spacing['2xl'],
+    },
+    avatarContainer: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: theme.spacing.lg,
+      borderWidth: 4,
+    },
+    avatarEmoji: {
+      fontSize: 42,
+    },
+    userName: {
+      ...theme.typography.h2,
+      marginBottom: theme.spacing.xs,
+    },
+    userEmail: {
+      ...theme.typography.bodySmall,
+    },
+    editButton: {
+      marginTop: theme.spacing.xl,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      backgroundColor: 'transparent',
+    },
+    editButtonText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    sectionEmoji: {
+      fontSize: 20,
+      marginRight: 8,
+    },
+    sectionTitle: {
+      ...theme.typography.h3,
+    },
+    sectionBody: {
+      borderRadius: theme.radii.xl,
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      borderWidth: 1,
+    },
+    settingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderRadius: theme.radii.lg,
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.lg + 2,
+      marginVertical: theme.spacing.xs,
+    },
+    settingLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    emojiBadge: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    emoji: {
+      fontSize: 20,
+    },
+    settingTitle: {
+      ...theme.typography.body,
+      marginLeft: theme.spacing.md + 2,
+      fontWeight: '600',
+    },
+    footer: {
+      alignItems: 'center',
+      paddingVertical: 30,
+    },
+    footerText: {
+      ...theme.typography.bodySmall,
+      marginBottom: theme.spacing.xs,
+    },
+    footerSubtext: {
+      ...theme.typography.caption,
+      opacity: 0.6,
+      textAlign: 'center',
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingTop: 20,
+      paddingBottom: 40,
+      paddingHorizontal: 24,
+      maxHeight: '80%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 24,
+    },
+    modalTitle: {
+      ...theme.typography.h2,
+      textAlign: 'center',
+      flex: 1,
+    },
+    registerButtons: {
+      gap: theme.spacing.md,
+    },
+    registerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.lg,
+      borderRadius: theme.radii.lg,
+      gap: theme.spacing.md,
+      borderWidth: 1,
+      backgroundColor: 'transparent',
+    },
+    registerButtonText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+    },
+  });

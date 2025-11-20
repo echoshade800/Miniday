@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,12 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../store/useAppStore';
 import { calculateDaysDifference, sortEvents } from '../utils/dateUtils';
+import { getPastelCard } from '../theme';
+import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
+import { useTheme } from '../hooks/useTheme';
 
 /**
  * Category Events Screen
@@ -35,6 +39,8 @@ export default function CategoryEventsScreen() {
   const params = useLocalSearchParams();
   const { events, deleteEvent } = useAppStore();
   const [categoryEvents, setCategoryEvents] = useState([]);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     const filtered = events.filter((e) => e.categoryId === params.categoryId);
@@ -58,10 +64,11 @@ export default function CategoryEventsScreen() {
     const days = calculateDaysDifference(item.targetDate);
     const isPast = days < 0;
     const absDay = Math.abs(days);
+    const pastel = getPastelCard(item.id);
 
     return (
-      <TouchableOpacity
-        style={styles.eventItem}
+      <AnimatedScaleTouchable
+        style={[styles.eventItem, { backgroundColor: pastel.backgroundColor }]}
         onPress={() => router.push(`/details/${item.id}`)}
         onLongPress={() => handleDeleteEvent(item.id, item.title)}>
         <View style={styles.eventContent}>
@@ -77,22 +84,21 @@ export default function CategoryEventsScreen() {
             {isPast ? `${absDay}d ago` : `${absDay}d left`}
           </Text>
         </View>
-      </TouchableOpacity>
+      </AnimatedScaleTouchable>
     );
   };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyTop}>
-        <Ionicons name="calendar-outline" size={64} color="#fff" />
-      </View>
+      <LinearGradient colors={[theme.colors.card, theme.colors.accentLight]} style={styles.emptyTop}>
+        <Ionicons name="calendar-outline" size={64} color={theme.colors.primary} />
+        <Text style={styles.emptyTopEmoji}>✨</Text>
+      </LinearGradient>
       <View style={styles.emptyBottom}>
         <Text style={styles.emptyText}>No events in this category yet</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => router.push('/create-event')}>
+        <AnimatedScaleTouchable style={styles.addButton} onPress={() => router.push('/create-event')}>
           <Text style={styles.addButtonText}>Add Event</Text>
-        </TouchableOpacity>
+        </AnimatedScaleTouchable>
       </View>
     </View>
   );
@@ -100,13 +106,13 @@ export default function CategoryEventsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
+        <AnimatedScaleTouchable onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
+        </AnimatedScaleTouchable>
         <Text style={styles.headerTitle}>{params.categoryName}</Text>
-        <TouchableOpacity onPress={() => router.push('/create-event')}>
-          <Ionicons name="add" size={28} color="#2196F3" />
-        </TouchableOpacity>
+        <AnimatedScaleTouchable onPress={() => router.push('/create-event')}>
+          <Ionicons name="add" size={28} color={theme.colors.primary} />
+        </AnimatedScaleTouchable>
       </View>
 
       {categoryEvents.length === 0 ? (
@@ -123,97 +129,116 @@ export default function CategoryEventsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
-  },
-  eventItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: '#999',
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  futureBadge: {
-    backgroundColor: '#E3F2FD',
-  },
-  pastBadge: {
-    backgroundColor: '#FFF3E0',
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-  },
-  emptyTop: {
-    flex: 1,
-    backgroundColor: '#2196F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyBottom: {
-    flex: 2,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  addButton: {
-    backgroundColor: '#2196F3',
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    headerTitle: {
+      ...theme.typography.h2,
+      color: theme.colors.title,
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingTop: 20,
+      paddingBottom: 20,
+    },
+    eventItem: {
+      flexDirection: 'row',
+      padding: 18,
+      borderRadius: theme.radii.lg,
+      marginBottom: 12,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.divider,
+      ...theme.shadow.soft,
+    },
+    eventContent: {
+      flex: 1,
+    },
+    eventTitle: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.text,
+      marginBottom: theme.spacing.xs,
+    },
+    eventDate: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.textMuted,
+    },
+    badge: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: theme.radii.md,
+    },
+    futureBadge: {
+      backgroundColor: theme.colors.accentLight,
+    },
+    pastBadge: {
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    badgeText: {
+      ...theme.typography.caption,
+      fontWeight: '600',
+      color: theme.colors.primaryDark || theme.colors.primary,
+    },
+    emptyContainer: {
+      flex: 1,
+    },
+    emptyTop: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderTopLeftRadius: theme.radii.xl,
+      borderTopRightRadius: theme.radii.xl,
+      overflow: 'hidden',
+    },
+    emptyTopEmoji: {
+      fontSize: 32,
+      marginTop: 12,
+    },
+    emptyBottom: {
+      flex: 2,
+      backgroundColor: theme.colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 40,
+      borderBottomLeftRadius: theme.radii.xl,
+      borderBottomRightRadius: theme.radii.xl,
+      borderWidth: 1,
+      borderColor: theme.colors.divider,
+      borderTopWidth: 0,
+    },
+    emptyText: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      marginBottom: theme.spacing.lg,
+      fontWeight: '600',
+    },
+    addButton: {
+      paddingHorizontal: theme.spacing['2xl'],
+      paddingVertical: theme.spacing.md + 2,
+      borderRadius: theme.radii.lg,
+      ...theme.shadow.card,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      backgroundColor: 'transparent',
+    },
+    addButtonText: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      color: theme.colors.primary,
+    },
+  });

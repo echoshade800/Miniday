@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { eventStorage } from '../utils/eventStorage';
 import { getNextOccurrence } from '../utils/dateUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const THEME_MODE_KEY = 'MiniDays_themeMode';
+const LEGACY_DARK_MODE_KEY = 'MiniDays_darkMode';
 
 /**
  * Global app store using Zustand
@@ -12,9 +16,49 @@ export const useAppStore = create((set, get) => ({
   categories: [],
   loading: false,
   hasCompletedOnboarding: false,
+  darkMode: false,
+  themeMode: 'light',
 
   // Actions
   setOnboardingComplete: (complete) => set({ hasCompletedOnboarding: complete }),
+
+  loadThemeMode: async () => {
+    try {
+      let storedMode = await AsyncStorage.getItem(THEME_MODE_KEY);
+
+      if (storedMode !== 'light' && storedMode !== 'dark') {
+        const legacyValue = await AsyncStorage.getItem(LEGACY_DARK_MODE_KEY);
+        const legacyIsDark = legacyValue === 'true';
+        storedMode = legacyIsDark ? 'dark' : 'light';
+        await AsyncStorage.setItem(THEME_MODE_KEY, storedMode);
+      }
+
+      set({ themeMode: storedMode, darkMode: storedMode === 'dark' });
+      return storedMode;
+    } catch (error) {
+      console.error('Failed to load theme mode:', error);
+      return 'light';
+    }
+  },
+
+  setThemeMode: async (mode) => {
+    try {
+      await AsyncStorage.setItem(THEME_MODE_KEY, mode);
+      set({ themeMode: mode, darkMode: mode === 'dark' });
+    } catch (error) {
+      console.error('Failed to save theme mode:', error);
+    }
+  },
+
+  // Backward-compatible helpers
+  loadDarkMode: async () => {
+    const mode = await get().loadThemeMode();
+    return mode === 'dark';
+  },
+
+  setDarkMode: async (isDark) => {
+    await get().setThemeMode(isDark ? 'dark' : 'light');
+  },
 
   loadEvents: async () => {
     set({ loading: true });

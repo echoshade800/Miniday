@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -12,29 +13,33 @@ import { useAppStore } from '../store/useAppStore';
 export default function RootLayout() {
   useFrameworkReady();
 
-  const { loadEvents, loadCategories } = useAppStore();
+  const { loadEvents, loadCategories, loadThemeMode } = useAppStore();
+  const themeMode = useAppStore((state) => state.themeMode);
 
   useEffect(() => {
     // Startup identity flow
     const initializeApp = async () => {
       try {
-        // 1. Attempt to read userData
+        // 1. Load theme preference
+        await loadThemeMode();
+
+        // 2. Attempt to read userData
         const userData = await StorageUtils.getUserData();
         if (userData) {
           console.log('User data loaded:', userData.userName);
         }
 
-        // 2. Attempt to read storageData
+        // 3. Attempt to read storageData
         const storageData = await StorageUtils.getData();
         if (storageData) {
           console.log('Storage data loaded');
         }
 
-        // 3. Load events and categories
+        // 4. Load events and categories
         await loadEvents();
         await loadCategories();
 
-        // 4. Continue to render the app
+        // 5. Continue to render the app
       } catch (error) {
         console.error('App initialization error:', error);
       }
@@ -55,7 +60,7 @@ export default function RootLayout() {
         <Stack.Screen name="about" />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
     </>
   );
 }

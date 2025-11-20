@@ -1,44 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TouchableOpacity,
-  TextInput,
   Alert,
+  Modal,
+  TouchableOpacity,
+  Platform,
+  ActionSheetIOS,
+  ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, sortEvents } from '../../utils/dateUtils';
+import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
+import SearchBar from '../../components/SearchBar';
+import { getPastelCard, getEmojiForCategory, getCardVariants } from '../../utils/theme';
+import { cancelEventNotifications } from '../../utils/notificationUtils';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
  * Home (Dashboard) Screen
  * Purpose: Overview of all countdowns with pinned event highlight
- *
- * Features:
- * - Pinned event display (top 1/3)
- * - Search bar for filtering events
- * - Sorted event list (future first, then past)
- * - Swipe-to-delete functionality
- * - Empty/idle states
- *
- * To extend:
- * - Add pull-to-refresh
- * - Add event categories filter
- * - Implement animations for list items
  */
-
 export default function HomeScreen() {
   const router = useRouter();
-  const { events, loadEvents, deleteEvent, getPinnedEvent } = useAppStore();
+  const { events, categories, loadEvents, loadCategories, deleteEvent, getPinnedEvent, darkMode } =
+    useAppStore();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState([]);
+  const [longPressEvent, setLongPressEvent] = useState(null);
+  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     loadEvents();
+    loadCategories();
   }, []);
 
   useEffect(() => {
@@ -46,10 +48,7 @@ export default function HomeScreen() {
       setFilteredEvents(sortEvents(events));
     } else {
       const query = searchQuery.toLowerCase();
-      const filtered = events.filter(event =>
-        event.title.toLowerCase().includes(query)
-      );
-      // Sort by relevance (exact match first, then partial)
+      const filtered = events.filter((event) => event.title.toLowerCase().includes(query));
       const sorted = filtered.sort((a, b) => {
         const aTitle = a.title.toLowerCase();
         const bTitle = b.title.toLowerCase();
@@ -64,22 +63,60 @@ export default function HomeScreen() {
   }, [events, searchQuery]);
 
   const pinnedEvent = getPinnedEvent();
+  const categoryEmojiMap = useMemo(() => categories, [categories]);
 
-  const handleDeleteEvent = (id, title) => {
-    Alert.alert(
-      'Delete Event',
-      `Are you sure you want to delete "${title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+  const handleLongPress = (event) => {
+    setLongPressEvent(event);
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
         {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteEvent(id);
-          },
+          options: ['Cancel', 'Edit', 'Delete'],
+          destructiveButtonIndex: 2,
+          cancelButtonIndex: 0,
         },
-      ]
-    );
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            router.push({
+              pathname: '/create-event',
+              params: { id: event.id },
+            });
+          } else if (buttonIndex === 2) {
+            handleDeleteEvent(event.id, event.title);
+          }
+          setLongPressEvent(null);
+        }
+      );
+    } else {
+      setShowMenu(true);
+    }
+  };
+
+  const handleDeleteEvent = async (id, title) => {
+    Alert.alert('Delete Event', `Are you sure you want to delete "${title}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          // Cancel notifications
+          await cancelEventNotifications(id);
+          await deleteEvent(id);
+        },
+      },
+    ]);
+    setShowMenu(false);
+    setLongPressEvent(null);
+  };
+
+  const handleEditEvent = () => {
+    if (longPressEvent) {
+      router.push({
+        pathname: '/create-event',
+        params: { id: longPressEvent.id },
+      });
+    }
+    setShowMenu(false);
+    setLongPressEvent(null);
   };
 
   const renderPinnedSection = () => {
@@ -89,43 +126,59 @@ export default function HomeScreen() {
       const days = calculateDaysDifference(pinnedEvent.targetDate);
       const isPast = days < 0;
       const absDay = Math.abs(days);
-
-      return (
-        <TouchableOpacity
-          style={[styles.pinnedCard, isPast ? styles.pastCard : styles.futureCard]}
-          onPress={() => router.push(`/details/${pinnedEvent.id}`)}
-          activeOpacity={0.9}>
+      const cardContent = (
+        <>
           <Text style={styles.pinnedTitle}>{pinnedEvent.title}</Text>
           <Text style={styles.pinnedDays}>{absDay}</Text>
-          <Text style={styles.pinnedLabel}>
-            {isPast ? `days since` : `days left`}
-          </Text>
+          <View style={styles.pinnedBadge}>
+            <Text style={styles.pinnedBadgeText}>{isPast ? 'days since' : 'days left'}</Text>
+          </View>
           <Text style={styles.pinnedDate}>
             {new Date(pinnedEvent.targetDate).toLocaleDateString()}
           </Text>
-        </TouchableOpacity>
+        </>
+      );
+
+      return (
+        <AnimatedScaleTouchable
+          style={styles.pinnedTouchable}
+          onPress={() => router.push(`/details/${pinnedEvent.id}`)}>
+          {pinnedEvent.backgroundImage ? (
+            <ImageBackground
+              source={{ uri: pinnedEvent.backgroundImage }}
+              style={styles.pinnedCard}
+              imageStyle={styles.pinnedImage}>
+              <View pointerEvents="none" style={styles.pinnedOverlay} />
+              {cardContent}
+            </ImageBackground>
+          ) : (
+            <LinearGradient colors={[theme.colors.card, theme.colors.accentLight]} style={styles.pinnedCard}>
+              {cardContent}
+            </LinearGradient>
+          )}
+        </AnimatedScaleTouchable>
       );
     }
 
     if (events.length > 0) {
       return (
-        <View style={styles.idleCard}>
-          <Ionicons name="pin-outline" size={48} color="#FFA726" />
-          <Text style={styles.idleText}>No pinned day yet</Text>
-          <Text style={styles.idleSubtext}>Pin an important event from your list</Text>
+        <View style={[styles.idleCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <Ionicons name="pin-outline" size={48} color={theme.colors.primary} />
+          <Text style={[styles.idleText, { color: theme.colors.text }]}>No pinned day yet</Text>
+          <Text style={[styles.idleSubtext, { color: theme.colors.textMuted }]}>Pin an important event from your list</Text>
         </View>
       );
     }
 
     return (
-      <View style={styles.emptyCard}>
-        <Ionicons name="calendar-outline" size={64} color="#fff" />
-        <Text style={styles.emptyText}>No days yet</Text>
-        <TouchableOpacity
-          style={styles.emptyButton}
+      <View style={[styles.emptyCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <Ionicons name="calendar-outline" size={64} color={theme.colors.primary} />
+        <Text style={[styles.emptyText, { color: theme.colors.text }]}>No days yet</Text>
+        <AnimatedScaleTouchable
+          style={[styles.emptyButton, { borderColor: theme.colors.primary }]}
           onPress={() => router.push('/create-event')}>
           <Text style={styles.emptyButtonText}>Add your first day</Text>
-        </TouchableOpacity>
+        </AnimatedScaleTouchable>
       </View>
     );
   };
@@ -134,54 +187,52 @@ export default function HomeScreen() {
     const days = calculateDaysDifference(item.targetDate);
     const isPast = days < 0;
     const absDay = Math.abs(days);
+    const pastel = getPastelCard(item.id, darkMode);
+    const emoji = getEmojiForCategory(categoryEmojiMap, item.categoryId);
 
     return (
-      <TouchableOpacity
-        style={styles.eventItem}
+      <AnimatedScaleTouchable
+        style={[styles.eventItem, { backgroundColor: pastel.backgroundColor }]}
         onPress={() => router.push(`/details/${item.id}`)}
-        onLongPress={() => handleDeleteEvent(item.id, item.title)}>
+        onLongPress={() => handleLongPress(item)}>
+        <View style={[styles.eventIcon, { backgroundColor: pastel.accentColor }]}>
+          <Text style={styles.eventEmoji}>{emoji}</Text>
+        </View>
         <View style={styles.eventContent}>
-          <Text style={styles.eventTitle} numberOfLines={1}>
+          <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text style={styles.eventDate}>
+          <Text style={[styles.eventDate, { color: theme.colors.textMuted }]}>
             {new Date(item.targetDate).toLocaleDateString()}
           </Text>
         </View>
         <View style={[styles.badge, isPast ? styles.pastBadge : styles.futureBadge]}>
-          <Text style={styles.badgeText}>
-            {isPast ? `${absDay}d ago` : `${absDay}d left`}
+          <Text
+            style={[
+              styles.badgeText,
+              { color: isPast ? theme.colors.body : theme.colors.primaryDark || theme.colors.primary },
+            ]}>
+            {isPast ? `${absDay} days ago` : `${absDay} days left`}
           </Text>
         </View>
-      </TouchableOpacity>
+      </AnimatedScaleTouchable>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mini Days</Text>
-        <TouchableOpacity onPress={() => router.push('/create-event')}>
-          <Ionicons name="add" size={28} color="#2196F3" />
-        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Mini Days</Text>
       </View>
 
       {renderPinnedSection()}
 
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search events..."
+      <View style={styles.searchWrapper}>
+        <SearchBar
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
+          placeholder="Search events..."
         />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={20} color="#999" />
-          </TouchableOpacity>
-        )}
       </View>
 
       <FlatList
@@ -192,184 +243,278 @@ export default function HomeScreen() {
         ListEmptyComponent={
           searchQuery.trim() !== '' ? (
             <View style={styles.emptySearch}>
-              <Text style={styles.emptySearchText}>No events found</Text>
+              <Text style={[styles.emptySearchText, { color: theme.colors.textMuted }]}>No events found</Text>
             </View>
           ) : null
         }
+        showsVerticalScrollIndicator={false}
       />
+
+      <AnimatedScaleTouchable
+        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card }]}
+        onPress={() => router.push('/create-event')}>
+        <Ionicons name="add" size={36} color={theme.colors.primary} />
+      </AnimatedScaleTouchable>
+
+      {/* Android Long Press Menu */}
+      {Platform.OS === 'android' && (
+        <Modal
+          visible={showMenu}
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            setShowMenu(false);
+            setLongPressEvent(null);
+          }}>
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => {
+              setShowMenu(false);
+              setLongPressEvent(null);
+            }}>
+            <View style={[styles.menuContent, { backgroundColor: theme.colors.surface }]}>
+              {longPressEvent && (
+                <>
+                  <Text style={[styles.menuTitle, { color: theme.colors.title }]} numberOfLines={1}>
+                    {longPressEvent.title}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.menuItem, { borderBottomColor: theme.colors.border }]}
+                    onPress={handleEditEvent}>
+                    <Ionicons name="create-outline" size={20} color={theme.colors.primary} />
+                    <Text style={[styles.menuItemText, { color: theme.colors.title }]}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => handleDeleteEvent(longPressEvent.id, longPressEvent.title)}>
+                    <Ionicons name="trash-outline" size={20} color={theme.colors.danger} />
+                    <Text style={[styles.menuItemText, { color: theme.colors.danger }]}>Delete</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  pinnedCard: {
-    margin: 20,
-    padding: 30,
-    borderRadius: 16,
-    alignItems: 'center',
-    minHeight: 200,
-    justifyContent: 'center',
-  },
-  futureCard: {
-    backgroundColor: '#2196F3',
-  },
-  pastCard: {
-    backgroundColor: '#FFA726',
-  },
-  pinnedTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  pinnedDays: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  pinnedLabel: {
-    fontSize: 18,
-    color: '#fff',
-    opacity: 0.9,
-    marginTop: 8,
-  },
-  pinnedDate: {
-    fontSize: 14,
-    color: '#fff',
-    opacity: 0.8,
-    marginTop: 12,
-  },
-  idleCard: {
-    margin: 20,
-    padding: 40,
-    borderRadius: 16,
-    backgroundColor: '#FFF9E6',
-    alignItems: 'center',
-    minHeight: 180,
-    justifyContent: 'center',
-  },
-  idleText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#F57C00',
-    marginTop: 16,
-  },
-  idleSubtext: {
-    fontSize: 14,
-    color: '#F57C00',
-    marginTop: 8,
-    opacity: 0.8,
-  },
-  emptyCard: {
-    margin: 20,
-    padding: 40,
-    borderRadius: 16,
-    backgroundColor: '#2196F3',
-    alignItems: 'center',
-    minHeight: 200,
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#fff',
-    marginTop: 16,
-  },
-  emptyButton: {
-    marginTop: 20,
-    backgroundColor: '#fff',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    color: '#2196F3',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    height: 48,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  eventItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: '#999',
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  futureBadge: {
-    backgroundColor: '#E3F2FD',
-  },
-  pastBadge: {
-    backgroundColor: '#FFF3E0',
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  emptySearch: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptySearchText: {
-    fontSize: 16,
-    color: '#999',
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 12,
+      paddingBottom: 8,
+    },
+    headerTitle: {
+      ...theme.typography.h1,
+      textAlign: 'center',
+    },
+    pinnedTouchable: {
+      marginHorizontal: theme.spacing.xl,
+      marginTop: theme.spacing.md,
+      borderRadius: theme.radii.xl,
+      ...theme.shadow.card,
+    },
+    pinnedCard: {
+      paddingVertical: theme.spacing['2xl'],
+      paddingHorizontal: theme.spacing.xl,
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    pinnedOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: theme.radii.xl,
+      backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    },
+    pinnedImage: {
+      borderRadius: theme.radii.xl,
+    },
+    pinnedTitle: {
+      ...theme.typography.h3,
+      marginBottom: theme.spacing.md,
+      textAlign: 'center',
+      color: theme.colors.title,
+    },
+    pinnedDays: {
+      fontSize: 96,
+      fontWeight: '700',
+      color: theme.colors.primary,
+      letterSpacing: 2,
+    },
+    pinnedBadge: {
+      marginTop: theme.spacing.lg,
+      paddingHorizontal: theme.spacing.lg,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radii.full,
+      backgroundColor: theme.colors.accentLight,
+    },
+    pinnedBadgeText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      color: theme.colors.primaryDark || theme.colors.primary,
+    },
+    pinnedDate: {
+      ...theme.typography.body,
+      color: theme.colors.body,
+      marginTop: theme.spacing.md,
+    },
+    idleCard: {
+      margin: theme.spacing.xl,
+      padding: theme.spacing['2xl'],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      minHeight: 180,
+      justifyContent: 'center',
+      borderWidth: 1,
+      ...theme.shadow.card,
+    },
+    idleText: {
+      ...theme.typography.h3,
+      marginTop: theme.spacing.lg,
+    },
+    idleSubtext: {
+      ...theme.typography.bodySmall,
+      marginTop: theme.spacing.sm,
+    },
+    emptyCard: {
+      margin: theme.spacing.xl,
+      padding: theme.spacing['2xl'],
+      borderRadius: theme.radii.xl,
+      alignItems: 'center',
+      minHeight: 200,
+      justifyContent: 'center',
+      borderWidth: 1,
+      ...theme.shadow.card,
+    },
+    emptyText: {
+      ...theme.typography.h3,
+      marginTop: theme.spacing.lg,
+    },
+    emptyButton: {
+      marginTop: theme.spacing.xl,
+      paddingHorizontal: theme.spacing.xl,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radii.lg,
+      borderWidth: 1,
+      backgroundColor: 'transparent',
+    },
+    emptyButtonText: {
+      color: theme.colors.primary,
+      ...theme.typography.body,
+      fontWeight: '600',
+    },
+    searchWrapper: {
+      marginHorizontal: theme.spacing.xl,
+      marginTop: theme.spacing.sm,
+    },
+    listContent: {
+      paddingHorizontal: theme.spacing.xl,
+      paddingBottom: 140,
+      paddingTop: theme.spacing.lg,
+    },
+    eventItem: {
+      flexDirection: 'row',
+      padding: theme.spacing.xl,
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.spacing.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: theme.colors.divider,
+      ...theme.shadow.card,
+    },
+    eventIcon: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: theme.spacing.lg,
+    },
+    eventEmoji: {
+      fontSize: 26,
+    },
+    eventContent: {
+      flex: 1,
+    },
+    eventTitle: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      marginBottom: theme.spacing.xs,
+    },
+    eventDate: {
+      ...theme.typography.bodySmall,
+    },
+    badge: {
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radii.full,
+    },
+    futureBadge: {
+      backgroundColor: theme.colors.accentLight,
+    },
+    pastBadge: {
+      backgroundColor: theme.colors.surfaceAlt,
+    },
+    badgeText: {
+      ...theme.typography.caption,
+      fontWeight: '600',
+      color: theme.colors.primaryDark || theme.colors.primary,
+    },
+    emptySearch: {
+      padding: theme.spacing['2xl'],
+      alignItems: 'center',
+    },
+    emptySearchText: {
+      ...theme.typography.body,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 96,
+      right: theme.spacing.lg,
+      width: 77,
+      height: 77,
+      borderRadius: 38.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadow.floating,
+      borderWidth: 1.5,
+    },
+    menuOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    menuContent: {
+      borderRadius: theme.radii.lg,
+      padding: theme.spacing.xl,
+      width: '80%',
+      maxWidth: 400,
+      ...theme.shadow.floating,
+    },
+    menuTitle: {
+      ...theme.typography.h3,
+      marginBottom: theme.spacing.lg,
+      paddingBottom: theme.spacing.lg,
+      borderBottomWidth: 1,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: theme.spacing.lg,
+      borderBottomWidth: 1,
+      gap: theme.spacing.md,
+    },
+    menuItemText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+    },
+  });

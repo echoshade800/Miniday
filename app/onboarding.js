@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
+import { useTheme } from '../hooks/useTheme';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,8 @@ export default function OnboardingScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const router = useRouter();
   const setOnboardingComplete = useAppStore((state) => state.setOnboardingComplete);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
@@ -59,7 +62,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name={slide.icon} size={100} color="#2196F3" />
+          <Ionicons name={slide.icon} size={100} color={theme.colors.primary} />
         </View>
 
         <Text style={styles.title}>{slide.title}</Text>
@@ -98,71 +101,72 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 30,
-  },
-  iconContainer: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  description: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 20,
-  },
-  pagination: {
-    flexDirection: 'row',
-    marginTop: 40,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#ddd',
-    marginHorizontal: 4,
-  },
-  activeDot: {
-    backgroundColor: '#2196F3',
-    width: 24,
-  },
-  footer: {
-    paddingHorizontal: 30,
-    paddingBottom: 30,
-  },
-  button: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  linkButton: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  linkText: {
-    color: '#2196F3',
-    fontSize: 14,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    content: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 30,
+    },
+    iconContainer: {
+      marginBottom: 40,
+    },
+    title: {
+      ...theme.typography.h1,
+      color: theme.colors.text,
+      textAlign: 'center',
+      marginBottom: theme.spacing.xl,
+    },
+    description: {
+      ...theme.typography.body,
+      color: theme.colors.textMuted,
+      textAlign: 'center',
+      paddingHorizontal: theme.spacing.xl,
+    },
+    pagination: {
+      flexDirection: 'row',
+      marginTop: 40,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.colors.divider,
+      marginHorizontal: 4,
+    },
+    activeDot: {
+      backgroundColor: theme.colors.primary,
+      width: 24,
+    },
+    footer: {
+      paddingHorizontal: 30,
+      paddingBottom: 30,
+    },
+    button: {
+      backgroundColor: 'transparent',
+      paddingVertical: theme.spacing.lg,
+      borderRadius: theme.radii.lg,
+      alignItems: 'center',
+      marginBottom: theme.spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+    },
+    buttonText: {
+      color: theme.colors.primary,
+      ...theme.typography.h3,
+      fontWeight: '600',
+    },
+    linkButton: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.sm,
+    },
+    linkText: {
+      color: theme.colors.body,
+      ...theme.typography.bodySmall,
+    },
+  });

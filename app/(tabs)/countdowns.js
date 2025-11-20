@@ -1,126 +1,52 @@
-import { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-} from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateDaysDifference, sortEvents } from '../../utils/dateUtils';
+import { sortEvents } from '../../utils/dateUtils';
+import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
+import { getCategoryGradient } from '../../utils/theme';
+import { useTheme } from '../../hooks/useTheme';
 
 /**
- * Countdowns Screen (Feature A)
+ * Countdowns Screen
  * Purpose: Browse and manage countdowns with category organization
- *
- * Features:
- * - Toggle between "All Events" and "By Category" views
- * - Search functionality
- * - Swipe-to-delete
- * - Navigate to category-specific lists
- *
- * To extend:
- * - Add sorting options (by date, name, category)
- * - Add filtering by date range
- * - Implement batch operations
  */
-
 export default function CountdownsScreen() {
   const router = useRouter();
-  const { events, categories, loadEvents, loadCategories, deleteEvent, deleteCategory } =
+  const { events, categories, loadEvents, loadCategories, deleteCategory, darkMode } =
     useAppStore();
-  const [viewMode, setViewMode] = useState('all'); // 'all' or 'categories'
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredEvents, setFilteredEvents] = useState([]);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     loadEvents();
     loadCategories();
   }, []);
 
-  useEffect(() => {
-    if (viewMode === 'all') {
-      if (searchQuery.trim() === '') {
-        setFilteredEvents(sortEvents(events));
-      } else {
-        const query = searchQuery.toLowerCase();
-        const filtered = events.filter((event) =>
-          event.title.toLowerCase().includes(query)
-        );
-        setFilteredEvents(sortEvents(filtered));
-      }
-    }
-  }, [events, searchQuery, viewMode]);
-
-  const handleDeleteEvent = (id, title) => {
-    Alert.alert('Delete Event', `Are you sure you want to delete "${title}"?`, [
+  const handleDeleteCategory = (id, name) => {
+    Alert.alert('Delete Category', `Delete "${name}"? Events will be moved to default category.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await deleteEvent(id);
+          await deleteCategory(id);
         },
       },
     ]);
   };
 
-  const handleDeleteCategory = (id, name) => {
-    Alert.alert(
-      'Delete Category',
-      `Delete "${name}"? Events will be moved to the default category.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteCategory(id);
-          },
-        },
-      ]
-    );
-  };
-
-  const renderEventItem = ({ item }) => {
-    const days = calculateDaysDifference(item.targetDate);
-    const isPast = days < 0;
-    const absDay = Math.abs(days);
-
-    return (
-      <TouchableOpacity
-        style={styles.eventItem}
-        onPress={() => router.push(`/details/${item.id}`)}
-        onLongPress={() => handleDeleteEvent(item.id, item.title)}>
-        <View style={styles.eventContent}>
-          <Text style={styles.eventTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <Text style={styles.eventDate}>
-            {new Date(item.targetDate).toLocaleDateString()}
-          </Text>
-        </View>
-        <View style={[styles.badge, isPast ? styles.pastBadge : styles.futureBadge]}>
-          <Text style={styles.badgeText}>
-            {isPast ? `${absDay}d ago` : `${absDay}d left`}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderCategoryItem = ({ item }) => {
+  const renderCategoryItem = ({ item, index }) => {
     const categoryEvents = events.filter((e) => e.categoryId === item.id);
     const upcomingEvent = sortEvents(categoryEvents)[0];
+    const gradient = getCategoryGradient(index, darkMode);
 
     return (
-      <TouchableOpacity
-        style={styles.categoryItem}
+      <AnimatedScaleTouchable
+        style={styles.categoryTouchable}
         onPress={() =>
           router.push({
             pathname: '/category-events',
@@ -128,271 +54,170 @@ export default function CountdownsScreen() {
           })
         }
         onLongPress={() => handleDeleteCategory(item.id, item.name)}>
-        <View style={styles.categoryIcon}>
-          <Text style={styles.categoryEmoji}>{item.icon}</Text>
-        </View>
-        <View style={styles.categoryContent}>
-          <View style={styles.categoryHeader}>
-            <Text style={styles.categoryName}>{item.name}</Text>
-            <View style={styles.countBadge}>
-              <Text style={styles.countText}>{categoryEvents.length}</Text>
-            </View>
+        <LinearGradient colors={gradient} style={styles.categoryItem}>
+          <View style={styles.categoryEmojiWrapper}>
+            <Text style={styles.categoryEmoji}>{item.icon || '🧁'}</Text>
           </View>
-          {upcomingEvent && (
-            <Text style={styles.categoryPreview} numberOfLines={1}>
-              {upcomingEvent.title}
-            </Text>
-          )}
-        </View>
-        <Ionicons name="chevron-forward" size={20} color="#999" />
-      </TouchableOpacity>
+          <View style={styles.categoryContent}>
+            <View style={styles.categoryHeader}>
+              <Text style={styles.categoryName}>{item.name}</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countText}>{categoryEvents.length}</Text>
+              </View>
+            </View>
+            {upcomingEvent ? (
+              <Text style={styles.categoryPreview} numberOfLines={1}>
+                Next: {upcomingEvent.title}
+              </Text>
+            ) : (
+              <Text style={styles.categoryPreview}>No events</Text>
+            )}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.colors.primaryDark || theme.colors.primary} />
+        </LinearGradient>
+      </AnimatedScaleTouchable>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Countdowns</Text>
-        {viewMode === 'categories' && (
-          <TouchableOpacity onPress={() => router.push('/create-category')}>
-            <Ionicons name="add" size={28} color="#2196F3" />
-          </TouchableOpacity>
-        )}
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Mini Days</Text>
+        <AnimatedScaleTouchable
+          style={[styles.addCategoryButton, { borderColor: theme.colors.primary, position: 'absolute', right: 10 }]}
+          onPress={() => router.push('/create-category')}>
+          <Ionicons name="add" size={20} color={theme.colors.primary} />
+        </AnimatedScaleTouchable>
       </View>
 
-      <View style={styles.segmentedControl}>
-        <TouchableOpacity
-          style={[styles.segment, viewMode === 'all' && styles.activeSegment]}
-          onPress={() => setViewMode('all')}>
-          <Text
-            style={[styles.segmentText, viewMode === 'all' && styles.activeSegmentText]}>
-            All Events
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.segment, viewMode === 'categories' && styles.activeSegment]}
-          onPress={() => setViewMode('categories')}>
-          <Text
-            style={[
-              styles.segmentText,
-              viewMode === 'categories' && styles.activeSegmentText,
-            ]}>
-            By Category
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <FlatList
+        data={categories}
+        renderItem={renderCategoryItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Ionicons name="folder-outline" size={64} color={theme.colors.textMuted} />
+            <Text style={[styles.emptyText, { color: theme.colors.textMuted }]}>No categories yet</Text>
+          </View>
+        }
+        showsVerticalScrollIndicator={false}
+      />
 
-      {viewMode === 'all' && (
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search events..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholderTextColor="#999"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {viewMode === 'all' ? (
-        <FlatList
-          data={filteredEvents}
-          renderItem={renderEventItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="calendar-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>
-                {searchQuery ? 'No events found' : 'No events yet'}
-              </Text>
-            </View>
-          }
-        />
-      ) : (
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="folder-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>No categories yet</Text>
-            </View>
-          }
-        />
-      )}
+      <AnimatedScaleTouchable
+        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card }]}
+        onPress={() => router.push('/create-event')}>
+        <Ionicons name="add" size={36} color={theme.colors.primary} />
+      </AnimatedScaleTouchable>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginVertical: 12,
-    borderRadius: 12,
-    padding: 4,
-  },
-  segment: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  activeSegment: {
-    backgroundColor: '#2196F3',
-  },
-  segmentText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeSegmentText: {
-    color: '#fff',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    height: 48,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  eventItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  eventContent: {
-    flex: 1,
-  },
-  eventTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: '#999',
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  futureBadge: {
-    backgroundColor: '#E3F2FD',
-  },
-  pastBadge: {
-    backgroundColor: '#FFF3E0',
-  },
-  badgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  categoryEmoji: {
-    fontSize: 24,
-  },
-  categoryContent: {
-    flex: 1,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginRight: 8,
-  },
-  countBadge: {
-    backgroundColor: '#e0e0e0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  countText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '600',
-  },
-  categoryPreview: {
-    fontSize: 14,
-    color: '#999',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#999',
-    marginTop: 16,
-  },
-});
+const createStyles = (theme) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 12,
+      paddingBottom: 8,
+      position: 'relative',
+    },
+    headerTitle: {
+      ...theme.typography.h1,
+      textAlign: 'center',
+    },
+    addCategoryButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadow.card,
+      borderWidth: 1,
+      backgroundColor: 'transparent',
+    },
+    listContent: {
+      paddingHorizontal: theme.spacing.xl,
+      paddingBottom: 120,
+      paddingTop: theme.spacing.md,
+    },
+    categoryTouchable: {
+      borderRadius: theme.radii.lg,
+      marginBottom: theme.spacing.md + 2,
+      ...theme.shadow.card,
+    },
+    categoryItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: theme.spacing.xl,
+      borderRadius: theme.radii.lg,
+    },
+    categoryEmojiWrapper: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.colors.accentLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+    },
+    categoryEmoji: {
+      fontSize: 28,
+    },
+    categoryContent: {
+      flex: 1,
+    },
+    categoryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    categoryName: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      color: theme.colors.title,
+      marginRight: theme.spacing.sm,
+    },
+    countBadge: {
+      backgroundColor: theme.colors.accentLight,
+      paddingHorizontal: theme.spacing.sm + 2,
+      paddingVertical: theme.spacing.xs,
+      borderRadius: theme.radii.md,
+    },
+    countText: {
+      ...theme.typography.caption,
+      fontWeight: '700',
+      color: theme.colors.primaryDark || theme.colors.primary,
+    },
+    categoryPreview: {
+      ...theme.typography.bodySmall,
+      color: theme.colors.body,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyText: {
+      ...theme.typography.body,
+      marginTop: theme.spacing.lg,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: 96,
+      right: theme.spacing.lg,
+      width: 77,
+      height: 77,
+      borderRadius: 38.5,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...theme.shadow.floating,
+      borderWidth: 1.5,
+    },
+  });
