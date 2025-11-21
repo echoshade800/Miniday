@@ -16,12 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
-import { calculateDaysDifference, sortEvents } from '../../utils/dateUtils';
+import { calculateDaysDifference, sortEvents, formatDate } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import SearchBar from '../../components/SearchBar';
 import { getPastelCard, getEmojiForCategory, getCardVariants } from '../../utils/theme';
 import { cancelEventNotifications } from '../../utils/notificationUtils';
 import { useTheme } from '../../hooks/useTheme';
+import { getCardOverlayColor, getEventContrast, getEventTextColor } from '../../utils/cardStyleUtils';
 
 /**
  * Home (Dashboard) Screen
@@ -126,15 +127,23 @@ export default function HomeScreen() {
       const days = calculateDaysDifference(pinnedEvent.targetDate);
       const isPast = days < 0;
       const absDay = Math.abs(days);
+      const suffix = isPast ? 'days ago' : 'days left';
+      const textColor = getEventTextColor(pinnedEvent);
+      const overlayColor = pinnedEvent.backgroundImage
+        ? getCardOverlayColor(textColor, getEventContrast(pinnedEvent))
+        : 'transparent';
+      const formattedDate = formatDate(pinnedEvent.targetDate);
       const cardContent = (
         <>
-          <Text style={styles.pinnedTitle}>{pinnedEvent.title}</Text>
-          <Text style={styles.pinnedDays}>{absDay}</Text>
-          <View style={styles.pinnedBadge}>
-            <Text style={styles.pinnedBadgeText}>{isPast ? 'days since' : 'days left'}</Text>
-          </View>
-          <Text style={styles.pinnedDate}>
-            {new Date(pinnedEvent.targetDate).toLocaleDateString()}
+          <Text style={[styles.pinnedTitle, { color: textColor }]} numberOfLines={2} ellipsizeMode="tail">
+            {pinnedEvent.title}
+          </Text>
+          <Text style={styles.pinnedDistance} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={[styles.pinnedDistanceValue, { color: textColor }]}>{absDay}</Text>
+            <Text style={[styles.pinnedDistanceSuffix, { color: textColor }]}>{` ${suffix}`}</Text>
+          </Text>
+          <Text style={[styles.pinnedDate, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+            {formattedDate}
           </Text>
         </>
       );
@@ -148,7 +157,7 @@ export default function HomeScreen() {
               source={{ uri: pinnedEvent.backgroundImage }}
               style={styles.pinnedCard}
               imageStyle={styles.pinnedImage}>
-              <View pointerEvents="none" style={styles.pinnedOverlay} />
+              <View pointerEvents="none" style={[styles.pinnedOverlay, { backgroundColor: overlayColor }]} />
               {cardContent}
             </ImageBackground>
           ) : (
@@ -225,7 +234,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Mini Days</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>DaySprout</Text>
       </View>
 
       {renderPinnedSection()}
@@ -335,39 +344,32 @@ const createStyles = (theme) =>
     pinnedOverlay: {
       ...StyleSheet.absoluteFillObject,
       borderRadius: theme.radii.xl,
-      backgroundColor: 'rgba(255, 255, 255, 0.85)',
     },
     pinnedImage: {
       borderRadius: theme.radii.xl,
     },
     pinnedTitle: {
       ...theme.typography.h3,
-      marginBottom: theme.spacing.md,
+      marginBottom: theme.spacing.lg,
       textAlign: 'center',
-      color: theme.colors.title,
     },
-    pinnedDays: {
+    pinnedDistance: {
+      textAlign: 'center',
+      marginBottom: theme.spacing.md,
+    },
+    pinnedDistanceValue: {
       fontSize: 96,
       fontWeight: '700',
-      color: theme.colors.primary,
       letterSpacing: 2,
     },
-    pinnedBadge: {
-      marginTop: theme.spacing.lg,
-      paddingHorizontal: theme.spacing.lg,
-      paddingVertical: theme.spacing.xs,
-      borderRadius: theme.radii.full,
-      backgroundColor: theme.colors.accentLight,
-    },
-    pinnedBadgeText: {
+    pinnedDistanceSuffix: {
       ...theme.typography.body,
       fontWeight: '600',
-      color: theme.colors.primaryDark || theme.colors.primary,
     },
     pinnedDate: {
       ...theme.typography.body,
-      color: theme.colors.body,
-      marginTop: theme.spacing.md,
+      marginTop: theme.spacing.sm,
+      textAlign: 'center',
     },
     idleCard: {
       margin: theme.spacing.xl,

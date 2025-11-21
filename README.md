@@ -1,4 +1,4 @@
-# Mini Days
+# DaySprout
 
 A beautifully simple countdown tracker app built with React Native (Expo). Track important dates, anniversaries, recurring events, and never miss a moment with morning reminders.
 

@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Pressable,
   Alert,
   ScrollView,
   Image,
@@ -18,11 +17,84 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import ViewShot from 'react-native-view-shot';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, formatDate } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import { useTheme } from '../../hooks/useTheme';
+import {
+  DEFAULT_BACKGROUND_CONTRAST,
+  DEFAULT_COUNTER_TEXT_COLOR,
+  TEXT_COLOR_OPTIONS,
+  clampContrast,
+  getCardOverlayColor,
+  getEventContrast,
+  getEventTextColor,
+} from '../../utils/cardStyleUtils';
+
+const pluralize = (value, unit) => `${value} ${unit}${value === 1 ? '' : 's'}`;
+
+const formatMonthsAndDays = (totalDays) => {
+  const months = Math.floor(totalDays / 30);
+  const days = totalDays % 30;
+  const parts = [];
+  if (months > 0) parts.push(pluralize(months, 'month'));
+  if (days > 0 || parts.length === 0) parts.push(pluralize(days, 'day'));
+  return parts.join(' ');
+};
+
+const formatWeeksAndDays = (totalDays) => {
+  const weeks = Math.floor(totalDays / 7);
+  const days = totalDays % 7;
+  const parts = [];
+  if (weeks > 0) parts.push(pluralize(weeks, 'week'));
+  if (days > 0) parts.push(pluralize(days, 'day'));
+  if (parts.length === 0) {
+    parts.push(pluralize(0, 'day'));
+  }
+  return parts.join(' ');
+};
+
+const formatCountdownValue = (mode, totalDays) => {
+  switch (mode) {
+    case 'monthsDays':
+      return formatMonthsAndDays(totalDays);
+    case 'weeksDays':
+      return formatWeeksAndDays(totalDays);
+    case 'days':
+    default:
+      return pluralize(totalDays, 'day');
+  }
+};
+
+const getAvailableDisplayModes = (totalDays) => {
+  if (totalDays > 30) {
+    return ['days', 'monthsDays', 'weeksDays'];
+  }
+  if (totalDays > 7) {
+    return ['days', 'weeksDays'];
+  }
+  return ['days'];
+};
+
+const getDistanceSuffix = (displayDays, countdownMode) => {
+  if (countdownMode === 'backward') {
+    return displayDays >= 0 ? 'passed' : 'left';
+  }
+  return displayDays >= 0 ? 'left' : 'passed';
+};
+
+const describeDisplayMode = (mode) => {
+  switch (mode) {
+    case 'monthsDays':
+      return 'months & days';
+    case 'weeksDays':
+      return 'weeks & days';
+    default:
+      return 'days';
+  }
+};
 
 /**
  * Event Details Screen
@@ -50,8 +122,11 @@ export default function DetailsScreen() {
   const [event, setEvent] = useState(null);
   const [category, setCategory] = useState(null);
   const [countdownMode, setCountdownMode] = useState('forward'); // 'forward' or 'backward'
-  const [showImagePicker, setShowImagePicker] = useState(false);
-  const [displayUnit, setDisplayUnit] = useState('days');
+  const [displayMode, setDisplayMode] = useState('days');
+  const [backgroundEditorVisible, setBackgroundEditorVisible] = useState(false);
+  const [editorContrast, setEditorContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
+  const [editorTextColor, setEditorTextColor] = useState(DEFAULT_COUNTER_TEXT_COLOR);
+  const [savingBackground, setSavingBackground] = useState(false);
   const shareViewRef = useRef(null);
 
   useEffect(() => {
@@ -62,7 +137,7 @@ export default function DetailsScreen() {
       setCategory(foundCategory);
       // Load countdown mode preference (default to forward)
       setCountdownMode(foundEvent.countdownMode || 'forward');
-      setDisplayUnit('days');
+      setDisplayMode('days');
     } else {
       // Event not found, navigate back to home
       router.replace('/(tabs)');
@@ -146,33 +221,68 @@ export default function DetailsScreen() {
     await updateEvent(event.id, { countdownMode: newMode });
   };
 
-  const cycleDisplayUnit = () => {
-    setDisplayUnit((prev) => {
-      if (prev === 'days') return 'weeks';
-      if (prev === 'weeks') return 'months';
-      if (prev === 'months') return 'years';
-      return 'days';
+  const openBackgroundEditor = () => {
+    if (!event) return;
+    setEditorContrast(event.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST);
+    setEditorTextColor(event.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR);
+    setBackgroundEditorVisible(true);
+  };
+
+  const handleApplyBackgroundSettings = async () => {
+    if (!event) return;
+    try {
+      setSavingBackground(true);
+      const updates = {
+        backgroundContrast: clampContrast(editorContrast),
+        counterTextColor: editorTextColor,
+      };
+      await updateEvent(event.id, updates);
+      setEvent((prev) => (prev ? { ...prev, ...updates } : prev));
+      setBackgroundEditorVisible(false);
+    } catch (error) {
+      console.error('Error updating background settings:', error);
+      Alert.alert('Error', 'Failed to update background settings. Please try again.');
+    } finally {
+      setSavingBackground(false);
+    }
+  };
+
+  const cycleDisplayMode = () => {
+    if (availableDisplayModes.length <= 1) return;
+    setDisplayMode((prev) => {
+      const modes = availableDisplayModes;
+      const currentIndex = modes.indexOf(prev);
+      const nextIndex = (currentIndex + 1) % modes.length;
+      return modes[nextIndex];
     });
   };
 
-  const handleShare = async () => {
-    try {
-      if (!shareViewRef.current) {
-        Alert.alert('Error', 'Unable to generate share image');
-        return;
-      }
+  const captureShareImage = async () => {
+    if (!shareViewRef.current) {
+      Alert.alert('Error', 'Unable to generate share image');
+      return null;
+    }
 
-      // Capture the view as an image
-      const uri = await shareViewRef.current.capture();
-      
-      // Check if sharing is available
+    try {
+      return await shareViewRef.current.capture();
+    } catch (error) {
+      console.error('Error capturing share image:', error);
+      Alert.alert('Error', 'Unable to generate share image');
+      return null;
+    }
+  };
+
+  const shareEventImage = async () => {
+    try {
+      const uri = await captureShareImage();
+      if (!uri) return;
+
       const isAvailable = await Sharing.isAvailableAsync();
       if (!isAvailable) {
         Alert.alert('Error', 'Sharing is not available on this device');
         return;
       }
 
-      // Share the image
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
         dialogTitle: 'Share Event',
@@ -183,26 +293,101 @@ export default function DetailsScreen() {
     }
   };
 
-  const showImageOptions = () => {
+  const saveEventImage = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Supported', 'Saving images is not supported on web.');
+      return;
+    }
+
+    try {
+      const uri = await captureShareImage();
+      if (!uri) return;
+
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Needed', 'Photo library access is required to save the image.');
+        return;
+      }
+
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert('Saved as image', 'Event has been saved as an image.');
+    } catch (error) {
+      console.error('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save image. Please try again.');
+    }
+  };
+
+  const handleShare = () => {
+    const presentAlert = () => {
+      const options = [
+        { text: 'Share', onPress: () => shareEventImage() },
+      ];
+
+      if (Platform.OS !== 'web') {
+        options.push({ text: 'Save Image', onPress: () => saveEventImage() });
+      }
+
+      options.push({ text: 'Cancel', style: 'cancel' });
+
+      Alert.alert('Share Event', 'Choose an option', options);
+    };
+
     if (Platform.OS === 'ios') {
+      const hasSaveOption = Platform.OS !== 'web';
+      const sheetOptions = ['Cancel', 'Share Image'];
+      if (hasSaveOption) {
+        sheetOptions.push('Save Image');
+      }
+
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Select Image', event.backgroundImage ? 'Remove Image' : null].filter(Boolean),
-          destructiveButtonIndex: event.backgroundImage ? 2 : undefined,
+          options: sheetOptions,
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
           if (buttonIndex === 1) {
-            handlePickImage();
-          } else if (buttonIndex === 2 && event.backgroundImage) {
-            handleRemoveImage();
+            shareEventImage();
+          } else if (hasSaveOption && buttonIndex === 2) {
+            saveEventImage();
           }
         }
       );
-    } else {
-      setShowImagePicker(true);
+      return;
     }
+
+    presentAlert();
   };
+
+  const targetDate = event?.targetDate ?? null;
+  const rawDaysDifference = targetDate ? calculateDaysDifference(targetDate) : 0;
+  const displayDays = countdownMode === 'backward' ? -rawDaysDifference : rawDaysDifference;
+  const totalDays = Math.max(0, Math.floor(Math.abs(displayDays)));
+  const formattedDate = targetDate ? formatDate(targetDate) : '';
+  const availableDisplayModes = useMemo(() => getAvailableDisplayModes(totalDays), [totalDays]);
+
+  useEffect(() => {
+    if (!availableDisplayModes.includes(displayMode)) {
+      setDisplayMode('days');
+    }
+  }, [availableDisplayModes, displayMode]);
+
+  const displayValue = formatCountdownValue(displayMode, totalDays);
+  const distanceSuffix = getDistanceSuffix(displayDays, countdownMode);
+  const distanceText = `${displayValue} ${distanceSuffix}`.trim();
+  const isDaysMode = displayMode === 'days';
+  const countdownTextProps = {
+    numberOfLines: 2,
+    adjustsFontSizeToFit: true,
+    minimumFontScale: 0.7,
+  };
+  const textColor = getEventTextColor(event);
+  const overlayColor = getCardOverlayColor(textColor, getEventContrast(event));
+  const hasCustomBackground = Boolean(event?.backgroundImage);
+  const canCycleDisplayModes = availableDisplayModes.length > 1;
+  const cycleHint = canCycleDisplayModes
+    ? `Cycles between ${availableDisplayModes.map((mode) => describeDisplayMode(mode)).join(' → ')}`
+    : undefined;
+
 
   if (!event) {
     return (
@@ -212,7 +397,7 @@ export default function DetailsScreen() {
             <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
           </AnimatedScaleTouchable>
           <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
-            Mini Days
+            DaySprout
           </Text>
           <View style={styles.headerAction}>
             <Ionicons name="arrow-back" size={24} color="transparent" />
@@ -225,47 +410,6 @@ export default function DetailsScreen() {
     );
   }
 
-  const days = calculateDaysDifference(event.targetDate);
-  const isPast = days < 0;
-  // Use countdown mode to determine display
-  const displayDays = countdownMode === 'backward' ? -days : days;
-  const absDays = Math.abs(displayDays);
-  const formattedDate = formatDate(event.targetDate);
-  const displayValue = (() => {
-    switch (displayUnit) {
-      case 'weeks':
-        return (absDays / 7).toFixed(1);
-      case 'months':
-        return (absDays / 30).toFixed(1);
-      case 'years':
-        return (absDays / 365).toFixed(2);
-      case 'days':
-      default:
-        return absDays.toString();
-    }
-  })();
-
-  const displayLabel = (() => {
-    const suffix =
-      countdownMode === 'backward'
-        ? displayDays >= 0
-          ? 'passed'
-          : 'left'
-        : displayDays >= 0
-        ? 'left'
-        : 'passed';
-    const unitLabel =
-      displayUnit === 'days'
-        ? 'days'
-        : displayUnit === 'weeks'
-        ? 'weeks'
-        : displayUnit === 'months'
-        ? 'months'
-        : 'years';
-
-    return `${unitLabel} ${suffix}`;
-  })();
-
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
@@ -273,7 +417,7 @@ export default function DetailsScreen() {
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
         <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
-          Mini Days
+          DaySprout
         </Text>
         <AnimatedScaleTouchable style={styles.headerAction} onPress={handleEdit}>
           <Text style={[styles.editButton, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
@@ -284,7 +428,7 @@ export default function DetailsScreen() {
 
       <ScrollView style={styles.content}>
         <View style={styles.mainCardContainer}>
-          {event.backgroundImage ? (
+          {hasCustomBackground ? (
             <Image
               source={{ uri: event.backgroundImage }}
               style={styles.backgroundImage}
@@ -296,25 +440,33 @@ export default function DetailsScreen() {
               style={StyleSheet.absoluteFillObject}
             />
           )}
+          {hasCustomBackground && <View style={[styles.imageOverlay, { backgroundColor: overlayColor }]} />}
           <View style={styles.mainCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.eventTitle} numberOfLines={1} ellipsizeMode="tail">
-                {event.title}
+            <Text style={[styles.eventTitle, { color: textColor }]} numberOfLines={2} ellipsizeMode="tail">
+              {event.title}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.countdownTapArea}
+              onPress={cycleDisplayMode}
+              disabled={!canCycleDisplayModes}
+              activeOpacity={canCycleDisplayModes ? 0.75 : 1}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: !canCycleDisplayModes }}
+              accessibilityHint={cycleHint}>
+              <Text
+                style={[styles.countdownDistanceCompact, { color: textColor }]}
+                ellipsizeMode="clip"
+                {...countdownTextProps}>
+                {distanceText}
               </Text>
-              <Text style={styles.emojiDecor}>✨</Text>
-            </View>
+            </TouchableOpacity>
 
-            <Pressable style={styles.countdownContainer} onPress={cycleDisplayUnit} hitSlop={10}>
-              <Text style={styles.countdownNumber}>{displayValue}</Text>
-              <Text style={styles.countdownLabel}>{displayLabel}</Text>
-            </Pressable>
-
-            <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>Target Date: </Text>
-              <Text style={styles.dateValue}>{formattedDate}</Text>
-            </View>
+            <Text style={[styles.dateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+              {formattedDate}
+            </Text>
           </View>
-        </View>
+          </View>
 
         <View style={[styles.cardActionRow, { backgroundColor: theme.colors.surface }]}>
           <TouchableOpacity
@@ -327,13 +479,13 @@ export default function DetailsScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cardActionButton, { borderColor: theme.colors.primary, borderRightWidth: 0 }]}
-            onPress={showImageOptions}>
+            onPress={openBackgroundEditor}>
             <Ionicons name="image-outline" size={18} color={theme.colors.primary} />
             <Text
               style={[styles.cardActionText, { color: theme.colors.primary }]}
               numberOfLines={1}
               ellipsizeMode="tail">
-              Change Background
+              Bespoke
             </Text>
           </TouchableOpacity>
         </View>
@@ -417,7 +569,7 @@ export default function DetailsScreen() {
       <View style={styles.hiddenShareView}>
         <ViewShot ref={shareViewRef} options={{ format: 'png', quality: 1.0 }}>
           <View style={styles.shareCardContainer}>
-            {event.backgroundImage ? (
+            {hasCustomBackground ? (
               <Image
                 source={{ uri: event.backgroundImage }}
                 style={styles.shareBackgroundImage}
@@ -429,88 +581,176 @@ export default function DetailsScreen() {
                 style={StyleSheet.absoluteFillObject}
               />
             )}
+            {hasCustomBackground && <View style={[styles.shareOverlay, { backgroundColor: overlayColor }]} />}
             <View style={styles.shareCard}>
-              <View style={styles.shareCardHeader}>
-                <Text style={styles.shareEventTitle}>{event.title}</Text>
-                <Text style={styles.shareEmojiDecor}>✨</Text>
-              </View>
-
-              <View style={styles.shareCountdownContainer}>
-                <Text style={styles.shareCountdownNumber}>{absDays}</Text>
-                <Text style={styles.shareCountdownLabel}>
-                  {countdownMode === 'backward'
-                    ? (displayDays >= 0 ? 'days passed' : 'days left')
-                    : (displayDays >= 0 ? 'days left' : 'days passed')}
-                </Text>
-              </View>
-
-              <View style={styles.shareDateContainer}>
-                <Text style={styles.shareDateLabel}>Target Date: </Text>
-                <Text style={styles.shareDateValue}>{formattedDate}</Text>
-              </View>
-
-              <View style={styles.shareBrandContainer}>
-                <Text style={styles.shareBrandText}>Mini Days</Text>
-              </View>
+              <Text style={[styles.shareEventTitle, { color: textColor }]} numberOfLines={2} ellipsizeMode="tail">
+                {event.title}
+              </Text>
+              <Text style={styles.shareCountdownText} numberOfLines={2} ellipsizeMode="tail">
+                <Text style={[styles.shareCountdownNumber, { color: textColor }]}>{displayValue}</Text>
+                <Text style={[styles.shareCountdownSuffix, { color: textColor }]}>{` ${distanceSuffix}`}</Text>
+              </Text>
+              <Text style={[styles.shareDateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                {formattedDate}
+              </Text>
             </View>
           </View>
         </ViewShot>
       </View>
 
-      {/* Android Image Picker Modal */}
-      {Platform.OS === 'android' && (
-        <Modal
-          visible={showImagePicker}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setShowImagePicker(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Select Background Image</Text>
+      <Modal
+        visible={backgroundEditorVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBackgroundEditorVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
+            <View style={[styles.editorPreview, { backgroundColor: theme.colors.surfaceAlt }]}>
+              <Text style={[styles.previewTitle, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+                {event?.title || 'Event Title'}
+              </Text>
+              <Text style={[styles.previewDistance, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+                {distanceText}
+              </Text>
+              <Text style={[styles.previewDate, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+                {formattedDate || 'YYYY-MM-DD'}
+              </Text>
+            </View>
+
+            <View style={styles.editorSection}>
+              <Text style={[styles.editorLabel, { color: theme.colors.title }]}>
+                Contrast ({Math.round((editorContrast / 0.85) * 100)}%)
+              </Text>
+              <SimpleSlider
+                value={editorContrast}
+                minimumValue={0}
+                maximumValue={0.85}
+                onChange={setEditorContrast}
+                trackColor={theme.colors.surfaceAlt}
+                fillColor={theme.colors.primary}
+                thumbColor={theme.colors.card}
+              />
+            </View>
+
+            <View style={styles.editorSection}>
+              <Text style={[styles.editorLabel, { color: theme.colors.title }]}>Text color</Text>
+              <View style={styles.colorOptionsRow}>
+                {TEXT_COLOR_OPTIONS.map((option) => {
+                  const isActive = editorTextColor.toLowerCase() === option.toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[
+                        styles.colorOption,
+                        { borderColor: theme.colors.divider },
+                        isActive && { borderColor: theme.colors.primary },
+                      ]}
+                      onPress={() => setEditorTextColor(option)}>
+                      <View style={[styles.colorSwatch, { backgroundColor: option }]} />
+                      <Text style={[styles.colorOptionLabel, { color: theme.colors.title }]}>
+                        {option === '#000000' ? 'Black' : 'White'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.editorButtonsRow}>
               <TouchableOpacity
-                style={[styles.modalButton, { borderColor: theme.colors.primary }]}
-                onPress={() => {
-                  setShowImagePicker(false);
-                  handlePickImage();
-                }}>
-                <Text style={[styles.modalButtonText, { color: theme.colors.primary }]}>Choose from Library</Text>
+                style={[styles.modalButton, { borderColor: theme.colors.primary, flex: 1 }]}
+                onPress={handlePickImage}>
+                <Text style={[styles.modalButtonText, { color: theme.colors.primary }]}>Change Image</Text>
               </TouchableOpacity>
-              {event.backgroundImage && (
+              {event?.backgroundImage && (
                 <TouchableOpacity
-                  style={[styles.modalButton, { borderColor: theme.colors.danger, marginTop: theme.spacing.md }]}
-                  onPress={() => {
-                    setShowImagePicker(false);
-                    handleRemoveImage();
-                  }}>
-                  <Text style={[styles.modalButtonText, { color: theme.colors.danger }]}>Remove Background</Text>
+                  style={[styles.modalButton, { borderColor: theme.colors.danger, flex: 1 }]}
+                  onPress={handleRemoveImage}>
+                  <Text style={[styles.modalButtonText, { color: theme.colors.danger }]}>Remove Image</Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                style={[styles.modalButton, { borderColor: theme.colors.divider, marginTop: theme.spacing.md }]}
-                onPress={() => setShowImagePicker(false)}>
-                <Text style={[styles.modalButtonText, { color: theme.colors.body }]}>Cancel</Text>
-              </TouchableOpacity>
+            </View>
+
+            <View style={styles.editorFooter}>
+              <AnimatedScaleTouchable
+                style={[styles.editorActionButton, { borderColor: theme.colors.divider }]}
+                onPress={() => setBackgroundEditorVisible(false)}>
+                <Text style={[styles.editorActionText, { color: theme.colors.body }]}>Close</Text>
+              </AnimatedScaleTouchable>
+              <AnimatedScaleTouchable
+                style={[
+                  styles.editorActionButton,
+                  { borderColor: theme.colors.primary },
+                  savingBackground && styles.saveButtonDisabled,
+                ]}
+                onPress={handleApplyBackgroundSettings}
+                disabled={savingBackground}>
+                <Text style={[styles.editorActionText, { color: theme.colors.primary }]}>
+                  {savingBackground ? 'Saving...' : 'Save'}
+                </Text>
+              </AnimatedScaleTouchable>
             </View>
           </View>
-        </Modal>
-      )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
+const SimpleSlider = ({ value, onChange, minimumValue = 0, maximumValue = 1, trackColor, fillColor, thumbColor }) => {
+  const [trackWidth, setTrackWidth] = useState(0);
+  const clampedValue = Math.min(Math.max(value, minimumValue), maximumValue);
+  const range = maximumValue - minimumValue || 1;
+  const ratio = (clampedValue - minimumValue) / range;
+
+  const updateValue = (locationX) => {
+    if (!trackWidth) return;
+    const normalized = Math.min(Math.max(locationX / trackWidth, 0), 1);
+    const nextValue = minimumValue + normalized * range;
+    onChange(Number(nextValue.toFixed(2)));
+  };
+
+  return (
+    <View
+      style={[sliderStyles.track, { backgroundColor: trackColor }]}
+      onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => true}
+      onResponderGrant={(event) => updateValue(event.nativeEvent.locationX)}
+      onResponderMove={(event) => updateValue(event.nativeEvent.locationX)}
+      onResponderRelease={(event) => updateValue(event.nativeEvent.locationX)}>
+      <View
+        style={[
+          sliderStyles.fill,
+          { backgroundColor: fillColor, width: trackWidth ? ratio * trackWidth : 0 },
+        ]}
+      />
+      <View
+        style={[
+          sliderStyles.thumb,
+          {
+            backgroundColor: thumbColor,
+            left: trackWidth ? ratio * trackWidth - 12 : 0,
+          },
+        ]}
+      />
+    </View>
+  );
+};
+
 const createStyles = (theme) =>
   StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 16,
-    },
-    headerTitle: {
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerTitle: {
       ...theme.typography.h2,
       flex: 1,
       flexShrink: 1,
@@ -522,19 +762,19 @@ const createStyles = (theme) =>
       flexShrink: 0,
       alignItems: 'center',
       justifyContent: 'center',
-    },
-    editButton: {
-      fontSize: 16,
+  },
+  editButton: {
+    fontSize: 16,
       fontWeight: '700',
       flexShrink: 1,
-    },
-    content: {
-      flex: 1,
-    },
+  },
+  content: {
+    flex: 1,
+  },
     mainCardContainer: {
-      margin: 20,
+    margin: 20,
       borderRadius: theme.radii.xl,
-      overflow: 'hidden',
+    overflow: 'hidden',
       ...theme.shadow.floating,
     },
     backgroundImage: {
@@ -542,61 +782,45 @@ const createStyles = (theme) =>
       width: '100%',
       height: '100%',
     },
+    imageOverlay: {
+      ...StyleSheet.absoluteFillObject,
+    },
     mainCard: {
       minHeight: 400,
-      padding: 20,
-    },
-    cardHeader: {
-      backgroundColor: theme.colors.card,
-      paddingVertical: 20,
-      paddingHorizontal: 20,
-      borderRadius: theme.radii.lg,
-      flexDirection: 'row',
-      justifyContent: 'center',
+      padding: 24,
+      justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 20,
-      columnGap: theme.spacing.sm,
-    },
-    eventTitle: {
+      gap: theme.spacing.xl,
+  },
+  eventTitle: {
       fontSize: 24,
       fontWeight: '700',
-      color: theme.colors.title,
-      textAlign: 'center',
+    textAlign: 'center',
       flexShrink: 1,
+  },
+    countdownTapArea: {
+    alignItems: 'center',
+    paddingVertical: 40,
+      width: '100%',
     },
-    emojiDecor: {
-      fontSize: 20,
-      marginLeft: 8,
-    },
-    countdownContainer: {
-      alignItems: 'center',
-      paddingVertical: 40,
-    },
-    countdownNumber: {
+    countdownDistance: {
       fontSize: 96,
       fontWeight: '700',
-      color: theme.colors.primary,
       letterSpacing: 2,
+      textAlign: 'center',
+      width: '100%',
     },
-    countdownLabel: {
-      fontSize: 20,
-      color: theme.colors.body,
-      marginTop: 8,
-      fontWeight: '600',
-    },
-    dateContainer: {
-      alignItems: 'center',
-      paddingBottom: 20,
-    },
-    dateLabel: {
-      fontSize: 14,
-      color: theme.colors.body,
-      marginBottom: 4,
-    },
-    dateValue: {
+    countdownDistanceCompact: {
+      fontSize: 44,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+      textAlign: 'center',
+      width: '100%',
+  },
+  dateValue: {
       fontSize: 18,
-      color: theme.colors.title,
       fontWeight: '600',
+      textAlign: 'center',
     },
     cardActionRow: {
       flexDirection: 'row',
@@ -627,80 +851,80 @@ const createStyles = (theme) =>
       fontWeight: '600',
       flexShrink: 1,
       textAlign: 'center',
-    },
-    detailsSection: {
-      marginHorizontal: 20,
+  },
+  detailsSection: {
+    marginHorizontal: 20,
       borderRadius: 24,
-      overflow: 'hidden',
+    overflow: 'hidden',
       ...theme.shadow.card,
-    },
-    detailRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
       paddingVertical: 18,
-      paddingHorizontal: 20,
-      borderBottomWidth: 1,
-    },
-    detailLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      flex: 1,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+  },
+  detailLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
       minWidth: 0,
-    },
-    detailLabel: {
+  },
+  detailLabel: {
       ...theme.typography.body,
       marginLeft: theme.spacing.md,
       fontWeight: '600',
       flexShrink: 1,
-    },
-    detailRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
+  },
+  detailRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
       flex: 1,
       justifyContent: 'flex-end',
       minWidth: 0,
       columnGap: theme.spacing.xs,
       marginLeft: theme.spacing.md,
-    },
-    categoryEmoji: {
+  },
+  categoryEmoji: {
       fontSize: 20,
       marginRight: 8,
-    },
-    detailValue: {
+  },
+  detailValue: {
       ...theme.typography.body,
       fontWeight: '600',
       flexShrink: 1,
       textAlign: 'right',
-    },
-    deleteButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginHorizontal: 20,
-      marginTop: 20,
-      marginBottom: 40,
-      paddingVertical: 16,
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 40,
+    paddingVertical: 16,
       borderRadius: 24,
-      borderWidth: 2,
+    borderWidth: 2,
       ...theme.shadow.card,
       backgroundColor: theme.colors.card,
       borderColor: theme.colors.danger,
-    },
-    deleteButtonText: {
+  },
+  deleteButtonText: {
       ...theme.typography.body,
       fontWeight: '700',
       marginLeft: theme.spacing.sm,
       color: theme.colors.danger,
       flexShrink: 1,
-    },
-    loadingContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    loadingText: {
-      fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
     },
     modalOverlay: {
       flex: 1,
@@ -750,68 +974,140 @@ const createStyles = (theme) =>
       width: '100%',
       height: '100%',
     },
+    shareOverlay: {
+      ...StyleSheet.absoluteFillObject,
+    },
     shareCard: {
       flex: 1,
       padding: 30,
       justifyContent: 'space-between',
-    },
-    shareCardHeader: {
-      backgroundColor: theme.colors.card,
-      paddingVertical: 20,
-      paddingHorizontal: 20,
-      borderRadius: theme.radii.lg,
-      flexDirection: 'row',
-      justifyContent: 'center',
       alignItems: 'center',
+      gap: theme.spacing.xl,
     },
     shareEventTitle: {
       fontSize: 28,
       fontWeight: '700',
-      color: theme.colors.title,
       textAlign: 'center',
     },
-    shareEmojiDecor: {
-      fontSize: 24,
-      marginLeft: 8,
-    },
-    shareCountdownContainer: {
-      alignItems: 'center',
-      flex: 1,
-      justifyContent: 'center',
+    shareCountdownText: {
+      textAlign: 'center',
     },
     shareCountdownNumber: {
       fontSize: 120,
       fontWeight: '700',
-      color: theme.colors.primary,
       letterSpacing: 2,
     },
-    shareCountdownLabel: {
+    shareCountdownSuffix: {
+      ...theme.typography.body,
       fontSize: 24,
-      color: theme.colors.body,
-      marginTop: 12,
       fontWeight: '600',
-    },
-    shareDateContainer: {
-      alignItems: 'center',
-      paddingBottom: 20,
-    },
-    shareDateLabel: {
-      fontSize: 16,
-      color: theme.colors.body,
-      marginBottom: 4,
     },
     shareDateValue: {
       fontSize: 20,
-      color: theme.colors.title,
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    backgroundEditor: {
+      borderRadius: theme.radii.xl,
+      padding: theme.spacing.xl,
+      width: '90%',
+      maxWidth: 420,
+      gap: theme.spacing.lg,
+    },
+    editorPreview: {
+      borderRadius: theme.radii.lg,
+      padding: theme.spacing.lg,
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+    },
+    previewTitle: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    previewDistance: {
+      fontSize: 42,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    previewDate: {
+      ...theme.typography.body,
+      textAlign: 'center',
+    },
+    editorSection: {
+      gap: theme.spacing.sm,
+    },
+    editorLabel: {
+      ...theme.typography.body,
       fontWeight: '600',
     },
-    shareBrandContainer: {
-      alignItems: 'center',
-      paddingTop: 20,
+    colorOptionsRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
     },
-    shareBrandText: {
-      fontSize: 18,
-      color: theme.colors.primaryDark || theme.colors.primary,
+    colorOption: {
+      flex: 1,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      alignItems: 'center',
+      gap: theme.spacing.sm,
+    },
+    colorSwatch: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: theme.colors.divider,
+    },
+    colorOptionLabel: {
+      ...theme.typography.bodySmall,
+      fontWeight: '600',
+    },
+    editorButtonsRow: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+    },
+    editorFooter: {
+      flexDirection: 'row',
+      gap: theme.spacing.md,
+    },
+    editorActionButton: {
+      flex: 1,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    editorActionText: {
+      ...theme.typography.body,
       fontWeight: '600',
     },
   });
+
+const sliderStyles = StyleSheet.create({
+  track: {
+    width: '100%',
+    height: 20,
+    borderRadius: 999,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  fill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 999,
+  },
+  thumb: {
+    position: 'absolute',
+    top: -6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.1)',
+  },
+});

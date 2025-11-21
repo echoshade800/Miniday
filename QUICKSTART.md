@@ -1,4 +1,4 @@
-# Mini Days - Quick Start Guide
+# DaySprout - Quick Start Guide
 
 ## 🚀 Installation & Running
 

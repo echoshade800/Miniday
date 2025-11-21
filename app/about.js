@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,7 +69,7 @@ export default function AboutScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="calendar" size={64} color={theme.colors.primary} />
           </View>
-          <Text style={styles.appName}>Mini Days</Text>
+          <Text style={styles.appName}>DaySprout</Text>
           <Text style={styles.emojiDecor}>✨ 💗 🎀</Text>
           <Text style={styles.appTagline}>
             A beautifully simple way to track countdowns, anniversaries, and important
@@ -111,19 +111,11 @@ export default function AboutScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
           {renderInfoRow('help-circle-outline', 'FAQ', 'Frequently asked questions', () => router.push('/faq'))}
-          {renderInfoRow('mail-outline', 'Contact Support', 'Get help from our team')}
-          {renderInfoRow('star-outline', 'Rate This App', 'Share your feedback')}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Legal</Text>
-          {renderInfoRow('shield-checkmark-outline', 'Privacy Policy', null)}
-          {renderInfoRow('document-text-outline', 'Terms of Service', null)}
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Made with ❤️ for counting days</Text>
-          <Text style={styles.copyright}>© 2024 Mini Days. All rights reserved.</Text>
+          <Text style={styles.copyright}>© 2024 DaySprout. All rights reserved.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

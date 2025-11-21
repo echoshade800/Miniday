@@ -20,6 +20,7 @@ import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { scheduleEventNotification, cancelEventNotifications, requestNotificationPermissions } from '../utils/notificationUtils';
 import { useTheme } from '../hooks/useTheme';
+import { DEFAULT_BACKGROUND_CONTRAST, DEFAULT_COUNTER_TEXT_COLOR } from '../utils/cardStyleUtils';
 
 /**
  * Create/Edit Event Screen (Feature B)
@@ -111,6 +112,14 @@ export default function CreateEventScreen() {
       reminderAt: remind ? reminderAt.toISOString() : null,
     };
 
+    if (isEditing) {
+      eventData.backgroundContrast = editingEvent?.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST;
+      eventData.counterTextColor = editingEvent?.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR;
+    } else {
+      eventData.backgroundContrast = DEFAULT_BACKGROUND_CONTRAST;
+      eventData.counterTextColor = DEFAULT_COUNTER_TEXT_COLOR;
+    }
+
     try {
       let savedEvent;
       if (isEditing) {
@@ -160,6 +169,18 @@ export default function CreateEventScreen() {
     return `${month}/${day}/${year} ${hours}:${minutes}`;
   };
 
+  const mergeDateParts = (baseDate, newDate) => {
+    const updated = new Date(baseDate);
+    updated.setFullYear(newDate.getFullYear(), newDate.getMonth(), newDate.getDate());
+    return updated;
+  };
+
+  const mergeTimeParts = (baseDate, newDate) => {
+    const updated = new Date(baseDate);
+    updated.setHours(newDate.getHours(), newDate.getMinutes(), 0, 0);
+    return updated;
+  };
+
   const handleTargetPickerChange = (event, selectedDate) => {
     if (Platform.OS === 'android') {
       if (event.type === 'dismissed') {
@@ -175,6 +196,18 @@ export default function CreateEventScreen() {
     }
   };
 
+  const handleTargetDateWheelChange = (_, selectedDate) => {
+    if (selectedDate) {
+      setPendingTargetDate((prev) => mergeDateParts(prev, selectedDate));
+    }
+  };
+
+  const handleTargetTimeWheelChange = (_, selectedDate) => {
+    if (selectedDate) {
+      setPendingTargetDate((prev) => mergeTimeParts(prev, selectedDate));
+    }
+  };
+
   const handleReminderPickerChange = (event, selectedDate) => {
     if (Platform.OS === 'android') {
       if (event.type === 'dismissed') {
@@ -187,6 +220,18 @@ export default function CreateEventScreen() {
       }
     } else if (selectedDate) {
       setPendingReminderDate(selectedDate);
+    }
+  };
+
+  const handleReminderDateWheelChange = (_, selectedDate) => {
+    if (selectedDate) {
+      setPendingReminderDate((prev) => mergeDateParts(prev, selectedDate));
+    }
+  };
+
+  const handleReminderTimeWheelChange = (_, selectedDate) => {
+    if (selectedDate) {
+      setPendingReminderDate((prev) => mergeTimeParts(prev, selectedDate));
     }
   };
 
@@ -439,9 +484,24 @@ export default function CreateEventScreen() {
               <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
                 <DateTimePicker
                   value={pendingTargetDate}
-                  mode="datetime"
+                  mode="date"
                   display="spinner"
-                  onChange={handleTargetPickerChange}
+                  onChange={handleTargetDateWheelChange}
+                  style={styles.iosPicker}
+                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
+                />
+              </View>
+              <View
+                style={[
+                  styles.iosPickerWrapper,
+                  styles.iosPickerSpacing,
+                  { backgroundColor: theme.colors.card },
+                ]}>
+                <DateTimePicker
+                  value={pendingTargetDate}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleTargetTimeWheelChange}
                   style={styles.iosPicker}
                   textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
                 />
@@ -484,9 +544,24 @@ export default function CreateEventScreen() {
               <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
                 <DateTimePicker
                   value={pendingReminderDate}
-                  mode="datetime"
+                  mode="date"
                   display="spinner"
-                  onChange={handleReminderPickerChange}
+                  onChange={handleReminderDateWheelChange}
+                  style={styles.iosPicker}
+                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
+                />
+              </View>
+              <View
+                style={[
+                  styles.iosPickerWrapper,
+                  styles.iosPickerSpacing,
+                  { backgroundColor: theme.colors.card },
+                ]}>
+                <DateTimePicker
+                  value={pendingReminderDate}
+                  mode="time"
+                  display="spinner"
+                  onChange={handleReminderTimeWheelChange}
                   style={styles.iosPicker}
                   textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
                 />
@@ -718,6 +793,9 @@ const createStyles = (theme) =>
       borderRadius: theme.radii.lg,
       overflow: 'hidden',
       paddingVertical: theme.spacing.xs,
+    },
+    iosPickerSpacing: {
+      marginTop: theme.spacing.md,
     },
     modalActions: {
       flexDirection: 'row',

@@ -96,7 +96,7 @@ export default function CountdownsScreen() {
           style={[styles.headerTitle, { color: theme.colors.text }]}
           numberOfLines={1}
           ellipsizeMode="tail">
-          Mini Days
+          DaySprout
         </Text>
         <AnimatedScaleTouchable
           style={[styles.addCategoryButton, { borderColor: theme.colors.primary }]}
@@ -118,12 +118,6 @@ export default function CountdownsScreen() {
         }
         showsVerticalScrollIndicator={false}
       />
-
-      <AnimatedScaleTouchable
-        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card }]}
-        onPress={() => router.push('/create-event')}>
-        <Ionicons name="add" size={36} color={theme.colors.primary} />
-      </AnimatedScaleTouchable>
     </SafeAreaView>
   );
 }
@@ -234,17 +228,5 @@ const createStyles = (theme) =>
     emptyText: {
       ...theme.typography.body,
       marginTop: theme.spacing.lg,
-    },
-    fab: {
-      position: 'absolute',
-      bottom: 96,
-      right: theme.spacing.lg,
-      width: 77,
-      height: 77,
-      borderRadius: 38.5,
-      alignItems: 'center',
-      justifyContent: 'center',
-      ...theme.shadow.floating,
-      borderWidth: 1.5,
     },
   });

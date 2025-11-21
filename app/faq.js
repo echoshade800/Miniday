@@ -6,337 +6,117 @@ import { Ionicons } from '@expo/vector-icons';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
 import { useTheme } from '../hooks/useTheme';
 
-const FAQ_CONTENT = `Below is your full MiniDays FAQ in English, translated exactly from the Chinese version you approved.
+const FAQ_CONTENT = `1. How do I create a new event?
 
- No content was changed. No omissions. No additions.
+Go to the main screen and tap the “+” button (or the add button at the bottom). Fill in the event name, date, category, and any reminder or repeat options.
 
- You can directly copy this into Cursor or your app.
 
----
 
-📘 MiniDays FAQ (Common Questions & Usage Tips)
+2. How do I edit an existing event?
 
-Welcome to MiniDays — your personal event tracker and countdown companion!
+Open the event you want to change and tap the “Edit” button in the top-right corner.
 
- Here are the most common questions and suggestions to help you use the app smoothly.
 
----
 
-🌟 1. How do I create a new event?
+3. Why does the countdown number change when I tap it?
 
-You can create a new event in the following places:
+You can tap the countdown number to switch between different views:
 
-- The “+” button at the bottom-right of the Home screen
 
-- The “+” button on the top-right of the Category (Countdowns) screen
 
-- The “Add Event” button when a category is empty
+Days
 
-When creating an event, you can set:
 
-- Event name
 
-- Solar or Lunar date
+Years / Months / Days
 
-- Category (can create custom categories)
 
-- Pinned status (only one pinned event allowed)
 
-- Repeating frequency (Daily/Weekly/Monthly)
+Months / Days
 
-- Reminder and reminder time
 
----
 
-🗂️ 2. Can I create custom categories?
+Weeks / Days
 
-Yes!
+Tap again to cycle back.
 
-Go to Countdowns → top-right “+” → New Category
 
-You can:
 
-- Enter a category name
+4. Can I customize the event background?
 
-- Choose a cute emoji icon
+Yes. Open the event → tap “Bespoke” → choose an image from your gallery.
 
-- Save and assign future events
+You can also adjust contrast and text color visibility.
 
-You can also create a category from the “Category” section inside New Event.
 
----
 
-🔄 3. How does the Repeat feature work?
+5. How do I pin an event to the top?
 
-In the “Repeat” section, you can choose:
+Open the event → enable the “Pinned” toggle.
 
-- None — no repeat
+Only one event can be pinned at a time.
 
-- Daily — reminds you at the same time every day
 
-- Weekly — reminds you weekly on the same weekday
 
-- Monthly — reminds you monthly on the same date
+6. How do reminders work?
 
-MiniDays will automatically send reminders based on your settings.
+Enable “Reminder” when editing an event, then select the reminder date and time. You will receive a notification at the chosen time.
 
----
 
-⏰ 4. How do reminders work? Can I choose an exact time?
 
-Yes.
+7. What does ‘Repeat’ mean?
 
-When you turn on Reminder, a time picker wheel appears.
+Repeat allows an event to automatically recur:
 
-You can choose:
 
-- Year
 
-- Month
+Daily – every day at the same time
 
-- Day
 
-- Hour
 
-- Minute
+Weekly – same weekday every week
 
-Reminder notifications include:
 
-- Event name
 
-- Event date
+Monthly – same day every month
 
----
 
-🌓 5. How do I enable dark mode?
 
-Go to:
+None – no repetition
 
-Profile → Dark Theme
 
-After enabling, all pages will switch to dark mode:
 
-- Home
+8. Why does the countdown text size change?
 
-- Categories
+The app automatically adjusts text size to make sure long formats (such as “18 years 4 months 22 days”) fit properly on your screen.
 
-- Event details
 
-- Edit event
 
-- All secondary & tertiary screens
+9. How do I delete an event?
 
-Colors follow iOS system dark mode appearance.
+Open the event → scroll to the bottom → tap “Delete Event”.
 
----
+Or long-press an event card on the main list and choose “Delete”.
 
-💗 6. How do I change an event’s background?
 
-Inside the event detail page:
 
-- Long-press the large event display card
+10. How do I switch to dark mode?
 
-- A dialog pops up allowing you to choose a photo
+Go to the Profile tab and toggle “Dark Theme”.
 
-- Select an image from your phone’s gallery
+All screens will follow the same theme instantly.
 
-Photo access permission is required.
 
----
 
-🗑️ 7. Why does “Event not found” appear after deleting?
+11. Does this app require a login?
 
-This prompt has been removed in newer versions.
+No. All features are available without creating an account.
 
-Now:
 
-✔ After deleting an event, MiniDays returns to Home automatically,
 
- ✔ No error message is shown.
+12. Is my data stored online?
 
----
-
-📤 8. Can I share an event?
-
-Yes!
-
-Long-press an event on the Home screen:
-
-You will see:
-
-2734. Share
-
-2735. Edit
-
-2736. Delete
-
-Choose Share:
-
-- MiniDays generates a nicely formatted event screenshot
-
-- You can share it to common social apps
-
----
-
-🔢 9. Can countdown be shown in weeks/months/years?
-
-Yes.
-
-On the event detail screen:
-
-👉 Tap the large countdown number
-
-MiniDays will toggle between:
-
-- Days
-
-- Weeks
-
-- Months
-
-- Years
-
-Non-integer values show two decimals, e.g.:
-
-- 3.25 weeks
-
-- 1.58 months
-
----
-
-🧹 10. How does search work?
-
-In the Home search bar:
-
-You can type a keyword.
-
- MiniDays searches:
-
-✔ Event name
-
- ✔ Category name
-
- ✔ Target date (smart match)
-
-Results are sorted by relevance.
-
-Clear the search bar to restore the full list.
-
----
-
-📦 11. Is my data saved safely? Will it be lost?
-
-MiniDays uses:
-
-📌 Local storage (AsyncStorage)
-
- 📌 No account required
-
- 📌 No cloud upload
-
-Deleting/uninstalling the app will clear your data.
-
----
-
-📁 12. How do I view all events in a category?
-
-Go to:
-
-Countdowns → tap a category card
-
-If the category contains no events, a cute empty-state page appears with a button to add events quickly.
-
----
-
-🛠 13. Why can only one event be pinned?
-
-To keep the main screen clean and focused.
-
-To change the pinned event:
-
-- Unpin the current one
-
-- Pin a different event
-
----
-
-📆 14. How do I switch between Solar and Lunar dates?
-
-When creating or editing an event:
-
-Choose:
-
-- Solar
-
-- Lunar
-
-If Lunar is selected, MiniDays automatically converts it to Solar for display.
-
----
-
-🎨 15. Why is the theme a soft pink + neutral mix?
-
-The MiniDays design philosophy:
-
-- Cute but not childish
-
-- Neutral enough for both men and women
-
-- Soft colors + light card layout
-
-- Simple and pleasant to use every day
-
----
-
-📮 16. What if the screen doesn't refresh or turns blank?
-
-Try:
-
-- Shake device → Reload JS
-
-- Close Expo Go and reopen
-
-- Press r in the terminal to reload
-
-- Clear Expo Go cache
-
-- Restart the development server
-
----
-
-📱 17. How do I use MiniDays on an iPhone?
-
-Recommended:
-
-- Use Expo Go
-
-- Scan the QR code from the terminal
-
-If the QR code fails:
-
-- Click “open web” in terminal
-
-- Enter the URL manually in Safari
-
----
-
-🧰 18. Does MiniDays support theme customization?
-
-Yes.
-
-Developers can modify:
-
-- Theme primary colors
-
-- Background colors
-
-- Card colors
-
-- Fonts
-
-- Animations
-
-More themes are planned in future updates.`;
+Your events are saved locally on your device. They are not uploaded to any server.`;
 
 export default function FAQScreen() {
   const router = useRouter();
