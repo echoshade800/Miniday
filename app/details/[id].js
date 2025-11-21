@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -124,9 +124,11 @@ export default function DetailsScreen() {
   const [countdownMode, setCountdownMode] = useState('forward'); // 'forward' or 'backward'
   const [displayMode, setDisplayMode] = useState('days');
   const [backgroundEditorVisible, setBackgroundEditorVisible] = useState(false);
+  const [editorBackgroundImage, setEditorBackgroundImage] = useState(null);
   const [editorContrast, setEditorContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
   const [editorTextColor, setEditorTextColor] = useState(DEFAULT_COUNTER_TEXT_COLOR);
   const [savingBackground, setSavingBackground] = useState(false);
+  const [previewContrast, setPreviewContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
   const shareViewRef = useRef(null);
 
   useEffect(() => {
@@ -189,8 +191,7 @@ export default function DetailsScreen() {
 
       if (!result.canceled && result.assets[0]) {
         const imageUri = result.assets[0].uri;
-        await updateEvent(event.id, { backgroundImage: imageUri });
-        setEvent({ ...event, backgroundImage: imageUri });
+        setEditorBackgroundImage(imageUri);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -198,7 +199,7 @@ export default function DetailsScreen() {
     }
   };
 
-  const handleRemoveImage = async () => {
+  const handleRemoveImage = () => {
     Alert.alert(
       'Remove Background',
       'Are you sure you want to remove the background image?',
@@ -206,9 +207,8 @@ export default function DetailsScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
-          onPress: async () => {
-            await updateEvent(event.id, { backgroundImage: null });
-            setEvent({ ...event, backgroundImage: null });
+          onPress: () => {
+            setEditorBackgroundImage(null);
           },
         },
       ]
@@ -223,7 +223,10 @@ export default function DetailsScreen() {
 
   const openBackgroundEditor = () => {
     if (!event) return;
-    setEditorContrast(event.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST);
+    const initialContrast = clampContrast(event.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST);
+    setEditorContrast(initialContrast);
+    setPreviewContrast(initialContrast);
+    setEditorBackgroundImage(event.backgroundImage ?? null);
     setEditorTextColor(event.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR);
     setBackgroundEditorVisible(true);
   };
@@ -233,6 +236,7 @@ export default function DetailsScreen() {
     try {
       setSavingBackground(true);
       const updates = {
+        backgroundImage: editorBackgroundImage ?? null,
         backgroundContrast: clampContrast(editorContrast),
         counterTextColor: editorTextColor,
       };
@@ -382,12 +386,23 @@ export default function DetailsScreen() {
   };
   const textColor = getEventTextColor(event);
   const overlayColor = getCardOverlayColor(textColor, getEventContrast(event));
+  const gradientColors = useMemo(() => [theme.colors.card, theme.colors.accentLight], [theme.colors.card, theme.colors.accentLight]);
   const hasCustomBackground = Boolean(event?.backgroundImage);
   const canCycleDisplayModes = availableDisplayModes.length > 1;
   const cycleHint = canCycleDisplayModes
     ? `Cycles between ${availableDisplayModes.map((mode) => describeDisplayMode(mode)).join(' → ')}`
     : undefined;
 
+
+  const handlePreviewContrastChange = useCallback((value) => {
+    setPreviewContrast(clampContrast(value));
+  }, []);
+
+  const handlePreviewContrastComplete = useCallback((value) => {
+    const clamped = clampContrast(value);
+    setPreviewContrast(clamped);
+    setEditorContrast(clamped);
+  }, []);
 
   if (!event) {
     return (
@@ -606,7 +621,13 @@ export default function DetailsScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface }]}>
             <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
-            <View style={[styles.editorPreview, { backgroundColor: theme.colors.surfaceAlt }]}>
+            <BackgroundPreview
+              imageUri={editorBackgroundImage}
+              contrast={previewContrast}
+              textColor={editorTextColor}
+              gradientColors={gradientColors}
+              containerStyle={[styles.editorPreview, { backgroundColor: theme.colors.surfaceAlt }]}
+              contentStyle={styles.editorPreviewContent}>
               <Text style={[styles.previewTitle, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
                 {event?.title || 'Event Title'}
               </Text>
@@ -616,17 +637,18 @@ export default function DetailsScreen() {
               <Text style={[styles.previewDate, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
                 {formattedDate || 'YYYY-MM-DD'}
               </Text>
-            </View>
+            </BackgroundPreview>
 
             <View style={styles.editorSection}>
               <Text style={[styles.editorLabel, { color: theme.colors.title }]}>
-                Contrast ({Math.round((editorContrast / 0.85) * 100)}%)
+                Contrast ({Math.round((previewContrast / 0.85) * 100)}%)
               </Text>
               <SimpleSlider
-                value={editorContrast}
+                value={previewContrast}
                 minimumValue={0}
                 maximumValue={0.85}
-                onChange={setEditorContrast}
+                onValueChange={handlePreviewContrastChange}
+                onSlidingComplete={handlePreviewContrastComplete}
                 trackColor={theme.colors.surfaceAlt}
                 fillColor={theme.colors.primary}
                 thumbColor={theme.colors.card}
@@ -663,7 +685,7 @@ export default function DetailsScreen() {
                 onPress={handlePickImage}>
                 <Text style={[styles.modalButtonText, { color: theme.colors.primary }]}>Change Image</Text>
               </TouchableOpacity>
-              {event?.backgroundImage && (
+              {editorBackgroundImage && (
                 <TouchableOpacity
                   style={[styles.modalButton, { borderColor: theme.colors.danger, flex: 1 }]}
                   onPress={handleRemoveImage}>
@@ -698,7 +720,40 @@ export default function DetailsScreen() {
   );
 }
 
-const SimpleSlider = ({ value, onChange, minimumValue = 0, maximumValue = 1, trackColor, fillColor, thumbColor }) => {
+const BackgroundPreview = React.memo(function BackgroundPreview({
+  imageUri,
+  contrast,
+  textColor,
+  gradientColors,
+  containerStyle,
+  contentStyle,
+  children,
+}) {
+  const overlayColor = useMemo(() => getCardOverlayColor(textColor, contrast), [textColor, contrast]);
+
+  return (
+    <View style={containerStyle}>
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+      ) : (
+        <LinearGradient colors={gradientColors} style={StyleSheet.absoluteFillObject} />
+      )}
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: imageUri ? overlayColor : 'transparent' }]} />
+      <View style={contentStyle}>{children}</View>
+    </View>
+  );
+});
+
+const SimpleSlider = ({
+  value,
+  onValueChange,
+  onSlidingComplete,
+  minimumValue = 0,
+  maximumValue = 1,
+  trackColor,
+  fillColor,
+  thumbColor,
+}) => {
   const [trackWidth, setTrackWidth] = useState(0);
   const [internalValue, setInternalValue] = useState(value);
   const frameRef = useRef(null);
@@ -730,21 +785,28 @@ const SimpleSlider = ({ value, onChange, minimumValue = 0, maximumValue = 1, tra
       }
       frameRef.current = requestAnimationFrame(() => {
         frameRef.current = null;
-        onChange(Number(pendingValueRef.current.toFixed(3)));
+        if (onValueChange) {
+          onValueChange(Number(pendingValueRef.current.toFixed(3)));
+        }
       });
     },
-    [onChange]
+    [onValueChange]
   );
 
-  const updateValue = useCallback(
-    (locationX) => {
+  const applyLocationValue = useCallback(
+    (locationX, shouldComplete = false) => {
       if (!trackWidth) return;
       const normalized = Math.min(Math.max(locationX / trackWidth, 0), 1);
       const nextValue = minimumValue + normalized * range;
       setInternalValue(nextValue);
-      scheduleOnChange(nextValue);
+      if (onValueChange) {
+        scheduleOnChange(nextValue);
+      }
+      if (shouldComplete && onSlidingComplete) {
+        onSlidingComplete(Number(nextValue.toFixed(3)));
+      }
     },
-    [minimumValue, range, scheduleOnChange, trackWidth]
+    [minimumValue, onSlidingComplete, onValueChange, range, scheduleOnChange, trackWidth]
   );
 
   return (
@@ -752,9 +814,11 @@ const SimpleSlider = ({ value, onChange, minimumValue = 0, maximumValue = 1, tra
       style={[sliderStyles.track, { backgroundColor: trackColor }]}
       onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
       onStartShouldSetResponder={() => true}
-      onResponderGrant={(event) => updateValue(event.nativeEvent.locationX)}
-      onResponderMove={(event) => updateValue(event.nativeEvent.locationX)}
-      onResponderRelease={(event) => updateValue(event.nativeEvent.locationX)}>
+      onResponderGrant={(event) => applyLocationValue(event.nativeEvent.locationX)}
+      onResponderMove={(event) => applyLocationValue(event.nativeEvent.locationX)}
+      onResponderRelease={(event) => applyLocationValue(event.nativeEvent.locationX, true)}
+      onResponderTerminationRequest={() => true}
+      onResponderTerminate={(event) => applyLocationValue(event.nativeEvent.locationX, true)}>
       <View
         style={[
           sliderStyles.fill,
@@ -1052,8 +1116,13 @@ const createStyles = (theme) =>
     },
     editorPreview: {
       borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      minHeight: 140,
+    },
+    editorPreviewContent: {
       padding: theme.spacing.lg,
       alignItems: 'center',
+      justifyContent: 'center',
       gap: theme.spacing.sm,
     },
     previewTitle: {
