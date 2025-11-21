@@ -72,15 +72,15 @@ export default function CategoryEventsScreen() {
         onPress={() => router.push(`/details/${item.id}`)}
         onLongPress={() => handleDeleteEvent(item.id, item.title)}>
         <View style={styles.eventContent}>
-          <Text style={styles.eventTitle} numberOfLines={1}>
+          <Text style={styles.eventTitle} numberOfLines={1} ellipsizeMode="tail">
             {item.title}
           </Text>
-          <Text style={styles.eventDate}>
+          <Text style={styles.eventDate} numberOfLines={1} ellipsizeMode="tail">
             {new Date(item.targetDate).toLocaleDateString()}
           </Text>
         </View>
         <View style={[styles.badge, isPast ? styles.pastBadge : styles.futureBadge]}>
-          <Text style={styles.badgeText}>
+          <Text style={styles.badgeText} numberOfLines={1} ellipsizeMode="tail">
             {isPast ? `${absDay}d ago` : `${absDay}d left`}
           </Text>
         </View>
@@ -97,7 +97,9 @@ export default function CategoryEventsScreen() {
       <View style={styles.emptyBottom}>
         <Text style={styles.emptyText}>No events in this category yet</Text>
         <AnimatedScaleTouchable style={styles.addButton} onPress={() => router.push('/create-event')}>
-          <Text style={styles.addButtonText}>Add Event</Text>
+          <Text style={styles.addButtonText} numberOfLines={1} ellipsizeMode="tail">
+            Add Event
+          </Text>
         </AnimatedScaleTouchable>
       </View>
     </View>
@@ -106,11 +108,13 @@ export default function CategoryEventsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <AnimatedScaleTouchable onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
-        <Text style={styles.headerTitle}>{params.categoryName}</Text>
-        <AnimatedScaleTouchable onPress={() => router.push('/create-event')}>
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          {params.categoryName}
+        </Text>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.push('/create-event')}>
           <Ionicons name="add" size={28} color={theme.colors.primary} />
         </AnimatedScaleTouchable>
       </View>
@@ -148,6 +152,17 @@ const createStyles = (theme) =>
     headerTitle: {
       ...theme.typography.h2,
       color: theme.colors.title,
+      flex: 1,
+      flexShrink: 1,
+      textAlign: 'center',
+      marginHorizontal: theme.spacing.md,
+    },
+    headerAction: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     listContent: {
       paddingHorizontal: 20,
@@ -166,21 +181,26 @@ const createStyles = (theme) =>
     },
     eventContent: {
       flex: 1,
+      minWidth: 0,
     },
     eventTitle: {
       ...theme.typography.body,
       fontWeight: '600',
       color: theme.colors.text,
       marginBottom: theme.spacing.xs,
+      flexShrink: 1,
     },
     eventDate: {
       ...theme.typography.bodySmall,
       color: theme.colors.textMuted,
+      flexShrink: 1,
     },
     badge: {
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: theme.radii.md,
+      marginLeft: theme.spacing.md,
+      flexShrink: 0,
     },
     futureBadge: {
       backgroundColor: theme.colors.accentLight,
@@ -192,6 +212,8 @@ const createStyles = (theme) =>
       ...theme.typography.caption,
       fontWeight: '600',
       color: theme.colors.primaryDark || theme.colors.primary,
+      flexShrink: 1,
+      textAlign: 'center',
     },
     emptyContainer: {
       flex: 1,
@@ -240,5 +262,7 @@ const createStyles = (theme) =>
       ...theme.typography.body,
       fontWeight: '700',
       color: theme.colors.primary,
+      flexShrink: 1,
+      textAlign: 'center',
     },
   });

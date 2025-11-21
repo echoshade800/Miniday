@@ -60,20 +60,30 @@ export default function CountdownsScreen() {
           </View>
           <View style={styles.categoryContent}>
             <View style={styles.categoryHeader}>
-              <Text style={styles.categoryName}>{item.name}</Text>
+              <Text style={styles.categoryName} numberOfLines={1} ellipsizeMode="tail">
+                {item.name}
+              </Text>
               <View style={styles.countBadge}>
                 <Text style={styles.countText}>{categoryEvents.length}</Text>
               </View>
             </View>
             {upcomingEvent ? (
-              <Text style={styles.categoryPreview} numberOfLines={1}>
+              <Text style={styles.categoryPreview} numberOfLines={1} ellipsizeMode="tail">
                 Next: {upcomingEvent.title}
               </Text>
             ) : (
-              <Text style={styles.categoryPreview}>No events</Text>
+              <Text style={styles.categoryPreview} numberOfLines={1} ellipsizeMode="tail">
+                No events
+              </Text>
             )}
           </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.colors.primaryDark || theme.colors.primary} />
+          <View style={styles.categoryChevron}>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.colors.primaryDark || theme.colors.primary}
+            />
+          </View>
         </LinearGradient>
       </AnimatedScaleTouchable>
     );
@@ -82,9 +92,14 @@ export default function CountdownsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Mini Days</Text>
+        <Text
+          style={[styles.headerTitle, { color: theme.colors.text }]}
+          numberOfLines={1}
+          ellipsizeMode="tail">
+          Mini Days
+        </Text>
         <AnimatedScaleTouchable
-          style={[styles.addCategoryButton, { borderColor: theme.colors.primary, position: 'absolute', right: 10 }]}
+          style={[styles.addCategoryButton, { borderColor: theme.colors.primary }]}
           onPress={() => router.push('/create-category')}>
           <Ionicons name="add" size={20} color={theme.colors.primary} />
         </AnimatedScaleTouchable>
@@ -120,16 +135,18 @@ const createStyles = (theme) =>
     },
     header: {
       flexDirection: 'row',
-      justifyContent: 'center',
+      justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 24,
       paddingTop: 12,
       paddingBottom: 8,
-      position: 'relative',
     },
     headerTitle: {
       ...theme.typography.h1,
       textAlign: 'center',
+      flex: 1,
+      flexShrink: 1,
+      marginRight: theme.spacing.md,
     },
     addCategoryButton: {
       width: 40,
@@ -156,6 +173,7 @@ const createStyles = (theme) =>
       alignItems: 'center',
       padding: theme.spacing.xl,
       borderRadius: theme.radii.lg,
+      columnGap: theme.spacing.md,
     },
     categoryEmojiWrapper: {
       width: 56,
@@ -176,27 +194,36 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: 4,
+      columnGap: theme.spacing.sm,
     },
     categoryName: {
       ...theme.typography.body,
       fontWeight: '700',
       color: theme.colors.title,
-      marginRight: theme.spacing.sm,
+      flexShrink: 1,
     },
     countBadge: {
       backgroundColor: theme.colors.accentLight,
       paddingHorizontal: theme.spacing.sm + 2,
       paddingVertical: theme.spacing.xs,
       borderRadius: theme.radii.md,
+      flexShrink: 0,
     },
     countText: {
       ...theme.typography.caption,
       fontWeight: '700',
       color: theme.colors.primaryDark || theme.colors.primary,
+      flexShrink: 0,
     },
     categoryPreview: {
       ...theme.typography.bodySmall,
       color: theme.colors.body,
+      flexShrink: 1,
+    },
+    categoryChevron: {
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     emptyContainer: {
       flex: 1,

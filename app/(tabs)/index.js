@@ -199,10 +199,13 @@ export default function HomeScreen() {
           <Text style={styles.eventEmoji}>{emoji}</Text>
         </View>
         <View style={styles.eventContent}>
-          <Text style={[styles.eventTitle, { color: theme.colors.text }]} numberOfLines={1}>
+          <Text
+            style={[styles.eventTitle, { color: theme.colors.text }]}
+            numberOfLines={1}
+            ellipsizeMode="tail">
             {item.title}
           </Text>
-          <Text style={[styles.eventDate, { color: theme.colors.textMuted }]}>
+          <Text style={[styles.eventDate, { color: theme.colors.textMuted }]} numberOfLines={1} ellipsizeMode="tail">
             {new Date(item.targetDate).toLocaleDateString()}
           </Text>
         </View>
@@ -276,7 +279,7 @@ export default function HomeScreen() {
             <View style={[styles.menuContent, { backgroundColor: theme.colors.surface }]}>
               {longPressEvent && (
                 <>
-                  <Text style={[styles.menuTitle, { color: theme.colors.title }]} numberOfLines={1}>
+                  <Text style={[styles.menuTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
                     {longPressEvent.title}
                   </Text>
                   <TouchableOpacity
@@ -443,19 +446,24 @@ const createStyles = (theme) =>
     },
     eventContent: {
       flex: 1,
+      minWidth: 0,
     },
     eventTitle: {
       ...theme.typography.body,
       fontWeight: '600',
       marginBottom: theme.spacing.xs,
+      flexShrink: 1,
     },
     eventDate: {
       ...theme.typography.bodySmall,
+      flexShrink: 1,
     },
     badge: {
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
       borderRadius: theme.radii.full,
+      marginLeft: theme.spacing.md,
+      flexShrink: 0,
     },
     futureBadge: {
       backgroundColor: theme.colors.accentLight,
@@ -505,6 +513,7 @@ const createStyles = (theme) =>
       marginBottom: theme.spacing.lg,
       paddingBottom: theme.spacing.lg,
       borderBottomWidth: 1,
+      flexShrink: 1,
     },
     menuItem: {
       flexDirection: 'row',
@@ -516,5 +525,6 @@ const createStyles = (theme) =>
     menuItemText: {
       ...theme.typography.body,
       fontWeight: '600',
+      flexShrink: 1,
     },
   });

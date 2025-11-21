@@ -31,13 +31,19 @@ export default function AboutScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const renderInfoRow = (icon, title, subtitle) => (
-    <AnimatedScaleTouchable style={styles.infoRow}>
+  const renderInfoRow = (icon, title, subtitle, onPress) => (
+    <AnimatedScaleTouchable style={styles.infoRow} onPress={onPress} disabled={!onPress}>
       <View style={styles.infoLeft}>
         <Ionicons name={icon} size={24} color={theme.colors.primary} />
         <View style={styles.infoTextContainer}>
-          <Text style={styles.infoTitle}>{title}</Text>
-          {subtitle && <Text style={styles.infoSubtitle}>{subtitle}</Text>}
+          <Text style={styles.infoTitle} numberOfLines={1} ellipsizeMode="tail">
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={styles.infoSubtitle} numberOfLines={1} ellipsizeMode="tail">
+              {subtitle}
+            </Text>
+          )}
         </View>
       </View>
       <Ionicons name="chevron-forward" size={20} color={theme.colors.body} />
@@ -47,11 +53,15 @@ export default function AboutScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <AnimatedScaleTouchable onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
-        <Text style={styles.headerTitle}>About & Help</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          About & Help
+        </Text>
+        <View style={styles.headerAction}>
+          <Ionicons name="arrow-back" size={24} color="transparent" />
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -100,7 +110,7 @@ export default function AboutScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Support</Text>
-          {renderInfoRow('help-circle-outline', 'FAQ', 'Frequently asked questions')}
+          {renderInfoRow('help-circle-outline', 'FAQ', 'Frequently asked questions', () => router.push('/faq'))}
           {renderInfoRow('mail-outline', 'Contact Support', 'Get help from our team')}
           {renderInfoRow('star-outline', 'Rate This App', 'Share your feedback')}
         </View>
@@ -137,6 +147,17 @@ const createStyles = (theme) =>
     headerTitle: {
       ...theme.typography.h2,
       color: theme.colors.text,
+      textAlign: 'center',
+      flex: 1,
+      flexShrink: 1,
+      marginHorizontal: theme.spacing.md,
+    },
+    headerAction: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     content: {
       flex: 1,
@@ -212,6 +233,8 @@ const createStyles = (theme) =>
       color: theme.colors.text,
       marginLeft: theme.spacing.md,
       fontWeight: '500',
+      flex: 1,
+      flexShrink: 1,
     },
     infoRow: {
       flexDirection: 'row',
@@ -241,10 +264,12 @@ const createStyles = (theme) =>
       color: theme.colors.text,
       marginBottom: 2,
       fontWeight: '600',
+      flexShrink: 1,
     },
     infoSubtitle: {
       ...theme.typography.bodySmall,
       color: theme.colors.textMuted,
+      flexShrink: 1,
     },
     footer: {
       alignItems: 'center',

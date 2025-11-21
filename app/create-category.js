@@ -73,11 +73,15 @@ export default function CreateCategoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <AnimatedScaleTouchable onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
-        <Text style={styles.headerTitle}>New Category</Text>
-        <View style={{ width: 24 }} />
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          New Category
+        </Text>
+        <View style={styles.headerAction}>
+          <Ionicons name="arrow-back" size={24} color="transparent" />
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -115,7 +119,7 @@ export default function CreateCategoryScreen() {
           style={[styles.saveButton, { borderColor: theme.colors.primary }, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={loading}>
-          <Text style={[styles.saveButtonText, { color: theme.colors.primary }]}>
+          <Text style={[styles.saveButtonText, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
             {loading ? 'Creating...' : 'Create Category'}
           </Text>
         </AnimatedScaleTouchable>
@@ -141,6 +145,17 @@ const createStyles = (theme) =>
     headerTitle: {
       ...theme.typography.h2,
       color: theme.colors.text,
+      flex: 1,
+      flexShrink: 1,
+      textAlign: 'center',
+      marginHorizontal: theme.spacing.md,
+    },
+    headerAction: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     content: {
       flex: 1,
@@ -159,6 +174,7 @@ const createStyles = (theme) =>
       fontWeight: '700',
       color: theme.colors.text,
       marginBottom: theme.spacing.md,
+      textAlign: 'left',
     },
     input: {
       backgroundColor: theme.colors.card,
@@ -212,5 +228,7 @@ const createStyles = (theme) =>
     saveButtonText: {
       ...theme.typography.h3,
       fontWeight: '700',
+      flexShrink: 1,
+      textAlign: 'center',
     },
   });

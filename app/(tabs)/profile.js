@@ -42,7 +42,12 @@ export default function ProfileScreen() {
         <View style={[styles.emojiBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
           <Text style={styles.emoji}>{emoji}</Text>
         </View>
-        <Text style={[styles.settingTitle, { color: theme.colors.title }]}>{title}</Text>
+        <Text
+          style={[styles.settingTitle, { color: theme.colors.title }]}
+          numberOfLines={1}
+          ellipsizeMode="tail">
+          {title}
+        </Text>
       </View>
       {typeof value === 'boolean' ? (
           <Switch
@@ -81,7 +86,9 @@ export default function ProfileScreen() {
             <AnimatedScaleTouchable
               style={[styles.editButton, { borderColor: theme.colors.primary }]}
               onPress={() => setShowRegisterModal(true)}>
-              <Text style={[styles.editButtonText, { color: theme.colors.primary }]}>Create Account</Text>
+              <Text style={[styles.editButtonText, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
+                Create Account
+              </Text>
             </AnimatedScaleTouchable>
           </View>
         </View>
@@ -139,8 +146,12 @@ export default function ProfileScreen() {
               <TouchableOpacity onPress={() => setShowRegisterModal(false)}>
                 <Ionicons name="close" size={24} color={theme.colors.body} />
               </TouchableOpacity>
-              <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Create your MiniDays account</Text>
-              <View style={{ width: 24 }} />
+              <Text style={[styles.modalTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+                Create your MiniDays account
+              </Text>
+              <View style={styles.modalHeaderSpacer}>
+                <Ionicons name="close" size={24} color="transparent" />
+              </View>
             </View>
 
             <View style={styles.registerButtons}>
@@ -148,28 +159,48 @@ export default function ProfileScreen() {
                 style={[styles.registerButton, { borderColor: theme.colors.primary }]}
                 onPress={() => handleSignUp('Apple')}>
                 <Ionicons name="logo-apple" size={20} color={theme.colors.primary} />
-                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Apple</Text>
+                <Text
+                  style={[styles.registerButtonText, { color: theme.colors.primary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  Continue with Apple
+                </Text>
               </AnimatedScaleTouchable>
 
               <AnimatedScaleTouchable
                 style={[styles.registerButton, { borderColor: theme.colors.primary }]}
                 onPress={() => handleSignUp('Google')}>
                 <Ionicons name="logo-google" size={20} color={theme.colors.primary} />
-                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Google</Text>
+                <Text
+                  style={[styles.registerButtonText, { color: theme.colors.primary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  Continue with Google
+                </Text>
               </AnimatedScaleTouchable>
 
               <AnimatedScaleTouchable
                 style={[styles.registerButton, { borderColor: theme.colors.primary }]}
                 onPress={() => handleSignUp('Facebook')}>
                 <Ionicons name="logo-facebook" size={20} color={theme.colors.primary} />
-                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Continue with Facebook</Text>
+                <Text
+                  style={[styles.registerButtonText, { color: theme.colors.primary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  Continue with Facebook
+                </Text>
               </AnimatedScaleTouchable>
 
               <AnimatedScaleTouchable
                 style={[styles.registerButton, { borderColor: theme.colors.primary }]}
                 onPress={() => handleSignUp('Email')}>
                 <Ionicons name="mail-outline" size={20} color={theme.colors.primary} />
-                <Text style={[styles.registerButtonText, { color: theme.colors.primary }]}>Sign up with email</Text>
+                <Text
+                  style={[styles.registerButtonText, { color: theme.colors.primary }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail">
+                  Sign up with email
+                </Text>
               </AnimatedScaleTouchable>
             </View>
           </View>
@@ -191,6 +222,7 @@ const createStyles = (theme) =>
     headerTitle: {
       ...theme.typography.h1,
       textAlign: 'center',
+      flexShrink: 1,
     },
     scrollContent: {
       paddingBottom: 60,
@@ -219,9 +251,13 @@ const createStyles = (theme) =>
     userName: {
       ...theme.typography.h2,
       marginBottom: theme.spacing.xs,
+      textAlign: 'center',
+      flexShrink: 1,
     },
     userEmail: {
       ...theme.typography.bodySmall,
+      textAlign: 'center',
+      flexShrink: 1,
     },
     editButton: {
       marginTop: theme.spacing.xl,
@@ -266,6 +302,7 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       flex: 1,
+      minWidth: 0,
     },
     emojiBadge: {
       width: 40,
@@ -281,6 +318,7 @@ const createStyles = (theme) =>
       ...theme.typography.body,
       marginLeft: theme.spacing.md + 2,
       fontWeight: '600',
+      flexShrink: 1,
     },
     footer: {
       alignItems: 'center',
@@ -289,6 +327,7 @@ const createStyles = (theme) =>
     footerText: {
       ...theme.typography.bodySmall,
       marginBottom: theme.spacing.xs,
+      textAlign: 'center',
     },
     footerSubtext: {
       ...theme.typography.caption,
@@ -318,6 +357,12 @@ const createStyles = (theme) =>
       ...theme.typography.h2,
       textAlign: 'center',
       flex: 1,
+      marginHorizontal: theme.spacing.md,
+    },
+    modalHeaderSpacer: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
     },
     registerButtons: {
       gap: theme.spacing.md,
@@ -332,9 +377,12 @@ const createStyles = (theme) =>
       gap: theme.spacing.md,
       borderWidth: 1,
       backgroundColor: 'transparent',
+      minWidth: 0,
     },
     registerButtonText: {
       ...theme.typography.body,
       fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'center',
     },
   });

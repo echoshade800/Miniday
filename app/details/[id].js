@@ -208,11 +208,15 @@ export default function DetailsScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-          <AnimatedScaleTouchable onPress={() => router.back()}>
+          <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
           </AnimatedScaleTouchable>
-          <Text style={[styles.headerTitle, { color: theme.colors.title }]}>Mini Days</Text>
-          <View style={{ width: 24 }} />
+          <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+            Mini Days
+          </Text>
+          <View style={styles.headerAction}>
+            <Ionicons name="arrow-back" size={24} color="transparent" />
+          </View>
         </View>
         <View style={styles.loadingContainer}>
           <Text style={[styles.loadingText, { color: theme.colors.body }]}>Loading...</Text>
@@ -265,12 +269,16 @@ export default function DetailsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <AnimatedScaleTouchable onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
-        <Text style={[styles.headerTitle, { color: theme.colors.title }]}>Mini Days</Text>
-        <AnimatedScaleTouchable onPress={handleEdit}>
-          <Text style={[styles.editButton, { color: theme.colors.primary }]}>Edit</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+          Mini Days
+        </Text>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={handleEdit}>
+          <Text style={[styles.editButton, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
+            Edit
+          </Text>
         </AnimatedScaleTouchable>
       </View>
 
@@ -290,7 +298,9 @@ export default function DetailsScreen() {
           )}
           <View style={styles.mainCard}>
             <View style={styles.cardHeader}>
-              <Text style={styles.eventTitle}>{event.title}</Text>
+              <Text style={styles.eventTitle} numberOfLines={1} ellipsizeMode="tail">
+                {event.title}
+              </Text>
               <Text style={styles.emojiDecor}>✨</Text>
             </View>
 
@@ -311,13 +321,20 @@ export default function DetailsScreen() {
             style={[styles.cardActionButton, { borderColor: theme.colors.primary }]}
             onPress={handleShare}>
             <Ionicons name="share-outline" size={18} color={theme.colors.primary} />
-            <Text style={[styles.cardActionText, { color: theme.colors.primary }]}>Share</Text>
+            <Text style={[styles.cardActionText, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
+              Share
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cardActionButton, { borderColor: theme.colors.primary, borderRightWidth: 0 }]}
             onPress={showImageOptions}>
             <Ionicons name="image-outline" size={18} color={theme.colors.primary} />
-            <Text style={[styles.cardActionText, { color: theme.colors.primary }]}>Change Background</Text>
+            <Text
+              style={[styles.cardActionText, { color: theme.colors.primary }]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              Change Background
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -325,28 +342,41 @@ export default function DetailsScreen() {
           <View style={[styles.detailRow, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.detailLeft}>
               <Ionicons name="folder-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.detailLabel, { color: theme.colors.title }]}>Category</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+                Category
+              </Text>
             </View>
             <View style={styles.detailRight}>
               <Text style={styles.categoryEmoji}>{category?.icon}</Text>
-              <Text style={[styles.detailValue, { color: theme.colors.body }]}>{category?.name || 'Unknown'}</Text>
+              <Text
+                style={[styles.detailValue, { color: theme.colors.body }]}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {category?.name || 'Unknown'}
+              </Text>
             </View>
           </View>
 
           <View style={[styles.detailRow, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.detailLeft}>
               <Ionicons name="pin-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.detailLabel, { color: theme.colors.title }]}>Pinned</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+                Pinned
+              </Text>
             </View>
-            <Text style={[styles.detailValue, { color: theme.colors.body }]}>{event.isPinned ? 'Yes' : 'No'}</Text>
+            <Text style={[styles.detailValue, { color: theme.colors.body }]} numberOfLines={1} ellipsizeMode="tail">
+              {event.isPinned ? 'Yes' : 'No'}
+            </Text>
           </View>
 
           <View style={[styles.detailRow, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.detailLeft}>
               <Ionicons name="repeat-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.detailLabel, { color: theme.colors.title }]}>Repeat</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+                Repeat
+              </Text>
             </View>
-            <Text style={[styles.detailValue, { color: theme.colors.body }]}>
+            <Text style={[styles.detailValue, { color: theme.colors.body }]} numberOfLines={1} ellipsizeMode="tail">
               {event.repeatRule === 'none'
                 ? 'None'
                 : event.repeatRule === 'daily'
@@ -362,9 +392,11 @@ export default function DetailsScreen() {
           <View style={[styles.detailRow, { borderBottomColor: theme.colors.border }]}>
             <View style={styles.detailLeft}>
               <Ionicons name="notifications-outline" size={20} color={theme.colors.primary} />
-              <Text style={[styles.detailLabel, { color: theme.colors.title }]}>Reminder</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
+                Reminder
+              </Text>
             </View>
-            <Text style={[styles.detailValue, { color: theme.colors.body }]}>
+            <Text style={[styles.detailValue, { color: theme.colors.body }]} numberOfLines={1} ellipsizeMode="tail">
               {event.remind && event.reminderAt
                 ? formatDate(event.reminderAt) + ' ' + new Date(event.reminderAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                 : 'Off'}
@@ -374,7 +406,9 @@ export default function DetailsScreen() {
 
         <AnimatedScaleTouchable style={styles.deleteButton} onPress={handleDelete}>
           <Ionicons name="trash-outline" size={20} color={theme.colors.danger} />
-          <Text style={styles.deleteButtonText}>Delete Event</Text>
+          <Text style={styles.deleteButtonText} numberOfLines={1} ellipsizeMode="tail">
+            Delete Event
+          </Text>
         </AnimatedScaleTouchable>
 
       </ScrollView>
@@ -478,10 +512,21 @@ const createStyles = (theme) =>
     },
     headerTitle: {
       ...theme.typography.h2,
+      flex: 1,
+      flexShrink: 1,
+      textAlign: 'center',
+    },
+    headerAction: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     editButton: {
       fontSize: 16,
       fontWeight: '700',
+      flexShrink: 1,
     },
     content: {
       flex: 1,
@@ -510,12 +555,14 @@ const createStyles = (theme) =>
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 20,
+      columnGap: theme.spacing.sm,
     },
     eventTitle: {
       fontSize: 24,
       fontWeight: '700',
       color: theme.colors.title,
       textAlign: 'center',
+      flexShrink: 1,
     },
     emojiDecor: {
       fontSize: 20,
@@ -573,10 +620,13 @@ const createStyles = (theme) =>
       borderRightWidth: StyleSheet.hairlineWidth,
       borderColor: theme.colors.border,
       backgroundColor: 'transparent',
+      minWidth: 0,
     },
     cardActionText: {
       ...theme.typography.body,
       fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'center',
     },
     detailsSection: {
       marginHorizontal: 20,
@@ -596,15 +646,22 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       flex: 1,
+      minWidth: 0,
     },
     detailLabel: {
       ...theme.typography.body,
       marginLeft: theme.spacing.md,
       fontWeight: '600',
+      flexShrink: 1,
     },
     detailRight: {
       flexDirection: 'row',
       alignItems: 'center',
+      flex: 1,
+      justifyContent: 'flex-end',
+      minWidth: 0,
+      columnGap: theme.spacing.xs,
+      marginLeft: theme.spacing.md,
     },
     categoryEmoji: {
       fontSize: 20,
@@ -613,6 +670,8 @@ const createStyles = (theme) =>
     detailValue: {
       ...theme.typography.body,
       fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'right',
     },
     deleteButton: {
       flexDirection: 'row',
@@ -633,6 +692,7 @@ const createStyles = (theme) =>
       fontWeight: '700',
       marginLeft: theme.spacing.sm,
       color: theme.colors.danger,
+      flexShrink: 1,
     },
     loadingContainer: {
       flex: 1,

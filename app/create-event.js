@@ -9,14 +9,15 @@ import {
   Switch,
   Platform,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
-import DateTimeWheelPicker from '../components/DateTimeWheelPicker';
-import ReminderTimePicker from '../components/ReminderTimePicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { scheduleEventNotification, cancelEventNotifications, requestNotificationPermissions } from '../utils/notificationUtils';
 import { useTheme } from '../hooks/useTheme';
 
@@ -71,7 +72,21 @@ export default function CreateEventScreen() {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
+  const [pendingTargetDate, setPendingTargetDate] = useState(targetDate);
+  const [pendingReminderDate, setPendingReminderDate] = useState(reminderAt);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (showDatePicker) {
+      setPendingTargetDate(targetDate);
+    }
+  }, [showDatePicker, targetDate]);
+
+  useEffect(() => {
+    if (showReminderPicker) {
+      setPendingReminderDate(reminderAt);
+    }
+  }, [showReminderPicker, reminderAt]);
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -145,6 +160,56 @@ export default function CreateEventScreen() {
     return `${month}/${day}/${year} ${hours}:${minutes}`;
   };
 
+  const handleTargetPickerChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'dismissed') {
+        setShowDatePicker(false);
+        return;
+      }
+      if (selectedDate) {
+        setShowDatePicker(false);
+        setTargetDate(selectedDate);
+      }
+    } else if (selectedDate) {
+      setPendingTargetDate(selectedDate);
+    }
+  };
+
+  const handleReminderPickerChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      if (event.type === 'dismissed') {
+        setShowReminderPicker(false);
+        return;
+      }
+      if (selectedDate) {
+        setShowReminderPicker(false);
+        setReminderAt(selectedDate);
+      }
+    } else if (selectedDate) {
+      setPendingReminderDate(selectedDate);
+    }
+  };
+
+  const confirmTargetPicker = () => {
+    setTargetDate(pendingTargetDate);
+    setShowDatePicker(false);
+  };
+
+  const cancelTargetPicker = () => {
+    setShowDatePicker(false);
+    setPendingTargetDate(targetDate);
+  };
+
+  const confirmReminderPicker = () => {
+    setReminderAt(pendingReminderDate);
+    setShowReminderPicker(false);
+  };
+
+  const cancelReminderPicker = () => {
+    setShowReminderPicker(false);
+    setPendingReminderDate(reminderAt);
+  };
+
   const renderCategoryPicker = () => (
     <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
       <Text style={[styles.label, { color: theme.colors.title }]}>Category</Text>
@@ -159,7 +224,9 @@ export default function CreateEventScreen() {
               style={[
                 styles.optionText,
                 categoryId === category.id && styles.optionTextActive,
-              ]}>
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
               {category.name}
             </Text>
           </TouchableOpacity>
@@ -194,7 +261,9 @@ export default function CreateEventScreen() {
                 style={[
                   styles.optionText,
                   repeatRule === option.value && styles.optionTextActive,
-                ]}>
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail">
                 {option.label}
               </Text>
             </TouchableOpacity>
@@ -207,13 +276,15 @@ export default function CreateEventScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <AnimatedScaleTouchable onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
-        <Text style={[styles.headerTitle, { color: theme.colors.title }]}>
+        <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
           {isEditing ? 'Edit Event' : 'New Event'}
         </Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerAction}>
+          <Ionicons name="arrow-back" size={24} color="transparent" />
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -266,7 +337,10 @@ export default function CreateEventScreen() {
           <TouchableOpacity
             style={[styles.input, { backgroundColor: theme.colors.card, borderColor: theme.colors.divider }]}
             onPress={() => setShowDatePicker(true)}>
-            <Text style={[styles.dateDisplayText, { color: theme.colors.title }]}>
+            <Text
+              style={[styles.dateDisplayText, { color: theme.colors.title }]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
               {formatDateDisplay(targetDate)}
             </Text>
             <Ionicons name="calendar-outline" size={20} color={theme.colors.body} />
@@ -282,7 +356,7 @@ export default function CreateEventScreen() {
 
         <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.switchRow}>
-            <View>
+            <View style={styles.switchTextGroup}>
               <Text style={[styles.label, { color: theme.colors.title }]}>Pin Event</Text>
               <Text style={[styles.hint, { color: theme.colors.body }]}>Only one event can be pinned</Text>
             </View>
@@ -299,13 +373,16 @@ export default function CreateEventScreen() {
 
         <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.switchRow}>
-            <View>
+            <View style={styles.switchTextGroup}>
               <Text style={[styles.label, { color: theme.colors.title }]}>Reminder</Text>
               {remind ? (
                 <TouchableOpacity
                   onPress={() => setShowReminderPicker(true)}
                   style={styles.reminderTimeButton}>
-                  <Text style={[styles.reminderTimeText, { color: theme.colors.primary }]}>
+                  <Text
+                    style={[styles.reminderTimeText, { color: theme.colors.primary }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail">
                     {formatReminderDisplay(reminderAt)}
                   </Text>
                   <Ionicons name="time-outline" size={16} color={theme.colors.primary} />
@@ -331,25 +408,101 @@ export default function CreateEventScreen() {
           style={[styles.saveButton, { borderColor: theme.colors.primary }, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={loading}>
-          <Text style={[styles.saveButtonText, { color: theme.colors.primary }]}>
+          <Text style={[styles.saveButtonText, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
             {loading ? 'Saving...' : 'Save Event'}
           </Text>
         </AnimatedScaleTouchable>
       </View>
 
-      <DateTimeWheelPicker
-        value={targetDate}
-        onChange={(date) => setTargetDate(date)}
-        visible={showDatePicker}
-        onClose={() => setShowDatePicker(false)}
-      />
+      {Platform.OS === 'android' && showDatePicker && (
+        <DateTimePicker
+          value={targetDate}
+          mode="datetime"
+          display="default"
+          onChange={handleTargetPickerChange}
+        />
+      )}
 
-      <ReminderTimePicker
-        value={reminderAt}
-        onChange={(date) => setReminderAt(date)}
-        visible={showReminderPicker}
-        onClose={() => setShowReminderPicker(false)}
-      />
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={showDatePicker}
+          animationType="slide"
+          transparent
+          presentationStyle="overFullScreen"
+          onRequestClose={cancelTargetPicker}>
+          <View style={styles.pickerModalWrapper}>
+            <TouchableWithoutFeedback onPress={cancelTargetPicker}>
+              <View style={styles.pickerModalBackdrop} />
+            </TouchableWithoutFeedback>
+            <View style={[styles.pickerModalContainer, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.pickerModalTitle, { color: theme.colors.title }]}>Select target date</Text>
+              <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
+                <DateTimePicker
+                  value={pendingTargetDate}
+                  mode="datetime"
+                  display="spinner"
+                  onChange={handleTargetPickerChange}
+                  style={styles.iosPicker}
+                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
+                />
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalActionButton} onPress={cancelTargetPicker}>
+                  <Text style={[styles.modalActionText, { color: theme.colors.body }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalActionButton} onPress={confirmTargetPicker}>
+                  <Text style={[styles.modalActionText, { color: theme.colors.primary }]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {Platform.OS === 'android' && showReminderPicker && (
+        <DateTimePicker
+          value={reminderAt}
+          mode="datetime"
+          display="default"
+          onChange={handleReminderPickerChange}
+        />
+      )}
+
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={showReminderPicker}
+          animationType="slide"
+          transparent
+          presentationStyle="overFullScreen"
+          onRequestClose={cancelReminderPicker}>
+          <View style={styles.pickerModalWrapper}>
+            <TouchableWithoutFeedback onPress={cancelReminderPicker}>
+              <View style={styles.pickerModalBackdrop} />
+            </TouchableWithoutFeedback>
+            <View style={[styles.pickerModalContainer, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.pickerModalTitle, { color: theme.colors.title }]}>Select reminder time</Text>
+              <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
+                <DateTimePicker
+                  value={pendingReminderDate}
+                  mode="datetime"
+                  display="spinner"
+                  onChange={handleReminderPickerChange}
+                  style={styles.iosPicker}
+                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
+                />
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.modalActionButton} onPress={cancelReminderPicker}>
+                  <Text style={[styles.modalActionText, { color: theme.colors.body }]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalActionButton} onPress={confirmReminderPicker}>
+                  <Text style={[styles.modalActionText, { color: theme.colors.primary }]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -368,6 +521,17 @@ const createStyles = (theme) =>
     },
     headerTitle: {
       ...theme.typography.h2,
+      flex: 1,
+      flexShrink: 1,
+      textAlign: 'center',
+      marginHorizontal: theme.spacing.md,
+    },
+    headerAction: {
+      paddingHorizontal: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      flexShrink: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     content: {
       flex: 1,
@@ -384,6 +548,7 @@ const createStyles = (theme) =>
       ...theme.typography.body,
       fontWeight: '700',
       marginBottom: theme.spacing.md,
+      flexShrink: 1,
     },
     input: {
       borderRadius: theme.radii.md,
@@ -394,13 +559,18 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      gap: theme.spacing.sm,
+      minWidth: 0,
     },
     dateDisplayText: {
       fontSize: 16,
+      flex: 1,
+      flexShrink: 1,
     },
     hint: {
       ...theme.typography.caption,
       marginTop: theme.spacing.sm,
+      textAlign: 'left',
     },
     calendarTypeToggle: {
       flexDirection: 'row',
@@ -425,6 +595,8 @@ const createStyles = (theme) =>
       ...theme.typography.bodySmall,
       fontWeight: '600',
       color: theme.colors.body,
+      flexShrink: 1,
+      textAlign: 'center',
     },
     calendarButtonTextActive: {
       color: theme.colors.primary,
@@ -433,16 +605,23 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: theme.spacing.lg,
+    },
+    switchTextGroup: {
+      flex: 1,
+      minWidth: 0,
     },
     reminderTimeButton: {
       flexDirection: 'row',
       alignItems: 'center',
       marginTop: 4,
       gap: 4,
+      flexWrap: 'nowrap',
     },
     reminderTimeText: {
       ...theme.typography.bodySmall,
       fontWeight: '600',
+      flexShrink: 1,
     },
     optionsContainer: {
       flexDirection: 'row',
@@ -458,6 +637,8 @@ const createStyles = (theme) =>
       alignItems: 'center',
       backgroundColor: theme.colors.surfaceAlt,
       borderColor: theme.colors.divider,
+      columnGap: theme.spacing.xs,
+      minWidth: 0,
     },
     optionButtonActive: {
       backgroundColor: theme.colors.accentLight,
@@ -467,6 +648,7 @@ const createStyles = (theme) =>
       ...theme.typography.bodySmall,
       fontWeight: '600',
       color: theme.colors.body,
+      flexShrink: 1,
     },
     optionTextActive: {
       color: theme.colors.primary,
@@ -504,5 +686,54 @@ const createStyles = (theme) =>
     saveButtonText: {
       ...theme.typography.h3,
       fontWeight: '700',
+      flexShrink: 1,
+      textAlign: 'center',
+    },
+    pickerModalWrapper: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    pickerModalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.25)',
+    },
+    pickerModalContainer: {
+      borderTopLeftRadius: theme.radii.xl,
+      borderTopRightRadius: theme.radii.xl,
+      paddingHorizontal: theme.spacing.xl,
+      paddingTop: theme.spacing.lg,
+      paddingBottom: theme.spacing.xxl,
+      gap: theme.spacing.lg,
+      backgroundColor: theme.colors.card,
+    },
+    pickerModalTitle: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    iosPicker: {
+      marginVertical: -theme.spacing.md,
+    },
+    iosPickerWrapper: {
+      borderRadius: theme.radii.lg,
+      overflow: 'hidden',
+      paddingVertical: theme.spacing.xs,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      gap: theme.spacing.md,
+    },
+    modalActionButton: {
+      flex: 1,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.radii.md,
+      borderWidth: 1,
+      borderColor: theme.colors.divider,
+      alignItems: 'center',
+    },
+    modalActionText: {
+      ...theme.typography.body,
+      fontWeight: '600',
     },
   });

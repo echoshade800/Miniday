@@ -86,7 +86,7 @@ export default function OnboardingScreen() {
           style={styles.button}
           onPress={handleNext}
           activeOpacity={0.8}>
-          <Text style={styles.buttonText}>
+          <Text style={styles.buttonText} numberOfLines={1} ellipsizeMode="tail">
             {currentSlide === slides.length - 1 ? 'Get Started' : 'Next'}
           </Text>
         </TouchableOpacity>
@@ -94,7 +94,9 @@ export default function OnboardingScreen() {
         <TouchableOpacity
           style={styles.linkButton}
           onPress={() => router.push('/about')}>
-          <Text style={styles.linkText}>Privacy & Terms</Text>
+          <Text style={styles.linkText} numberOfLines={1} ellipsizeMode="tail">
+            Privacy & Terms
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -125,8 +127,9 @@ const createStyles = (theme) =>
     description: {
       ...theme.typography.body,
       color: theme.colors.textMuted,
-      textAlign: 'center',
+      textAlign: 'left',
       paddingHorizontal: theme.spacing.xl,
+      flexShrink: 1,
     },
     pagination: {
       flexDirection: 'row',
@@ -160,6 +163,8 @@ const createStyles = (theme) =>
       color: theme.colors.primary,
       ...theme.typography.h3,
       fontWeight: '600',
+      flexShrink: 1,
+      textAlign: 'center',
     },
     linkButton: {
       alignItems: 'center',
@@ -168,5 +173,7 @@ const createStyles = (theme) =>
     linkText: {
       color: theme.colors.body,
       ...theme.typography.bodySmall,
+      flexShrink: 1,
+      textAlign: 'center',
     },
   });
