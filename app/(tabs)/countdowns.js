@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
 import { sortEvents } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
+import CategoryIcon from '../../components/CategoryIcon';
 import { getCategoryGradient } from '../../utils/theme';
 import { useTheme } from '../../hooks/useTheme';
 
@@ -55,8 +56,14 @@ export default function CountdownsScreen() {
         }
         onLongPress={() => handleDeleteCategory(item.id, item.name)}>
         <LinearGradient colors={gradient} style={styles.categoryItem}>
-          <View style={styles.categoryEmojiWrapper}>
-            <Text style={styles.categoryEmoji}>{item.icon || '🧁'}</Text>
+          <View style={styles.categoryIconSlot}>
+            <CategoryIcon
+              glyph={item.icon || '🧁'}
+              label={item.name}
+              variantKey={item.id}
+              size={58}
+              isDark={darkMode}
+            />
           </View>
           <View style={styles.categoryContent}>
             <View style={styles.categoryHeader}>
@@ -169,17 +176,8 @@ const createStyles = (theme) =>
       borderRadius: theme.radii.lg,
       columnGap: theme.spacing.md,
     },
-    categoryEmojiWrapper: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.colors.accentLight,
-      alignItems: 'center',
-      justifyContent: 'center',
+    categoryIconSlot: {
       marginRight: 16,
-    },
-    categoryEmoji: {
-      fontSize: 28,
     },
     categoryContent: {
       flex: 1,

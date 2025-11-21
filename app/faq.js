@@ -44,7 +44,7 @@ Tap again to cycle back.
 
 4. Can I customize the event background?
 
-Yes. Open the event → tap “Bespoke” → choose an image from your gallery.
+Yes. Open the event → tap “Customize” → choose an image from your gallery.
 
 You can also adjust contrast and text color visibility.
 

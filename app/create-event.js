@@ -28,14 +28,14 @@ import { DEFAULT_BACKGROUND_CONTRAST, DEFAULT_COUNTER_TEXT_COLOR } from '../util
  *
  * Features:
  * - Event name input
- * - Date selection (solar/lunar calendar toggle)
+ * - Date selection via Gregorian calendar
  * - Category selection
  * - Pin toggle (auto-unpins other events)
  * - Repeat rule selection
  * - Reminder toggle
  *
  * To extend:
- * - Implement actual lunar calendar conversion
+ * - Add richer calendar selection if needed
  * - Add custom repeat patterns
  * - Add reminder time customization
  * - Implement notification scheduling
@@ -57,7 +57,6 @@ export default function CreateEventScreen() {
       ? new Date(editingEvent.targetDate)
       : new Date()
   );
-  const [calendarType, setCalendarType] = useState('solar');
   const [categoryId, setCategoryId] = useState(editingEvent?.categoryId || '1');
   const [isPinned, setIsPinned] = useState(editingEvent?.isPinned || false);
   const [repeatRule, setRepeatRule] = useState(editingEvent?.repeatRule || 'none');
@@ -349,36 +348,6 @@ export default function CreateEventScreen() {
 
         <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
           <Text style={[styles.label, { color: theme.colors.title }]}>Target Date & Time *</Text>
-          <View style={[styles.calendarTypeToggle, { backgroundColor: theme.colors.surfaceAlt }]}>
-            <TouchableOpacity
-              style={[
-                styles.calendarButton,
-                calendarType === 'solar' && styles.calendarButtonActive,
-              ]}
-              onPress={() => setCalendarType('solar')}>
-              <Text
-                style={[
-                  styles.calendarButtonText,
-                  calendarType === 'solar' && styles.calendarButtonTextActive,
-                ]}>
-                Solar
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.calendarButton,
-                calendarType === 'lunar' && styles.calendarButtonActive,
-              ]}
-              onPress={() => setCalendarType('lunar')}>
-              <Text
-                style={[
-                  styles.calendarButtonText,
-                  calendarType === 'lunar' && styles.calendarButtonTextActive,
-                ]}>
-                Lunar
-              </Text>
-            </TouchableOpacity>
-          </View>
           <TouchableOpacity
             style={[styles.input, { backgroundColor: theme.colors.card, borderColor: theme.colors.divider }]}
             onPress={() => setShowDatePicker(true)}>
@@ -390,11 +359,6 @@ export default function CreateEventScreen() {
             </Text>
             <Ionicons name="calendar-outline" size={20} color={theme.colors.body} />
           </TouchableOpacity>
-          {calendarType === 'lunar' && (
-            <Text style={[styles.hint, { color: theme.colors.body }]}>
-              Lunar date will be converted to solar date
-            </Text>
-          )}
         </View>
 
         {renderCategoryPicker()}
@@ -646,35 +610,6 @@ const createStyles = (theme) =>
       ...theme.typography.caption,
       marginTop: theme.spacing.sm,
       textAlign: 'left',
-    },
-    calendarTypeToggle: {
-      flexDirection: 'row',
-      marginBottom: theme.spacing.md,
-      borderRadius: theme.radii.md,
-      padding: theme.spacing.xs,
-    },
-    calendarButton: {
-      flex: 1,
-      paddingVertical: theme.spacing.sm + 2,
-      alignItems: 'center',
-      borderRadius: theme.radii.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.divider,
-      backgroundColor: 'transparent',
-    },
-    calendarButtonActive: {
-      backgroundColor: theme.colors.accentLight,
-      borderColor: theme.colors.primary,
-    },
-    calendarButtonText: {
-      ...theme.typography.bodySmall,
-      fontWeight: '600',
-      color: theme.colors.body,
-      flexShrink: 1,
-      textAlign: 'center',
-    },
-    calendarButtonTextActive: {
-      color: theme.colors.primary,
     },
     switchRow: {
       flexDirection: 'row',

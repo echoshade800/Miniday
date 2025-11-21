@@ -19,6 +19,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, sortEvents, formatDate } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import SearchBar from '../../components/SearchBar';
+import CategoryIcon from '../../components/CategoryIcon';
 import { getPastelCard, getEmojiForCategory, getCardVariants } from '../../utils/theme';
 import { cancelEventNotifications } from '../../utils/notificationUtils';
 import { useTheme } from '../../hooks/useTheme';
@@ -204,8 +205,8 @@ export default function HomeScreen() {
         style={[styles.eventItem, { backgroundColor: pastel.backgroundColor }]}
         onPress={() => router.push(`/details/${item.id}`)}
         onLongPress={() => handleLongPress(item)}>
-        <View style={[styles.eventIcon, { backgroundColor: pastel.accentColor }]}>
-          <Text style={styles.eventEmoji}>{emoji}</Text>
+        <View style={styles.eventIconSlot}>
+          <CategoryIcon glyph={emoji} label={item.title} variantKey={item.categoryId} size={52} isDark={darkMode} />
         </View>
         <View style={styles.eventContent}>
           <Text
@@ -435,16 +436,8 @@ const createStyles = (theme) =>
       borderColor: theme.colors.divider,
       ...theme.shadow.card,
     },
-    eventIcon: {
-      width: 52,
-      height: 52,
-      borderRadius: 26,
-      alignItems: 'center',
-      justifyContent: 'center',
+    eventIconSlot: {
       marginRight: theme.spacing.lg,
-    },
-    eventEmoji: {
-      fontSize: 26,
     },
     eventContent: {
       flex: 1,

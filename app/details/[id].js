@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -485,7 +485,7 @@ export default function DetailsScreen() {
               style={[styles.cardActionText, { color: theme.colors.primary }]}
               numberOfLines={1}
               ellipsizeMode="tail">
-              Bespoke
+              Customize
             </Text>
           </TouchableOpacity>
         </View>
@@ -700,16 +700,52 @@ export default function DetailsScreen() {
 
 const SimpleSlider = ({ value, onChange, minimumValue = 0, maximumValue = 1, trackColor, fillColor, thumbColor }) => {
   const [trackWidth, setTrackWidth] = useState(0);
-  const clampedValue = Math.min(Math.max(value, minimumValue), maximumValue);
+  const [internalValue, setInternalValue] = useState(value);
+  const frameRef = useRef(null);
+  const pendingValueRef = useRef(value);
+
+  useEffect(() => {
+    setInternalValue(value);
+    pendingValueRef.current = value;
+  }, [value]);
+
+  useEffect(
+    () => () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    },
+    []
+  );
+
+  const clampedValue = Math.min(Math.max(internalValue, minimumValue), maximumValue);
   const range = maximumValue - minimumValue || 1;
   const ratio = (clampedValue - minimumValue) / range;
 
-  const updateValue = (locationX) => {
-    if (!trackWidth) return;
-    const normalized = Math.min(Math.max(locationX / trackWidth, 0), 1);
-    const nextValue = minimumValue + normalized * range;
-    onChange(Number(nextValue.toFixed(2)));
-  };
+  const scheduleOnChange = useCallback(
+    (nextValue) => {
+      pendingValueRef.current = nextValue;
+      if (frameRef.current) {
+        return;
+      }
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null;
+        onChange(Number(pendingValueRef.current.toFixed(3)));
+      });
+    },
+    [onChange]
+  );
+
+  const updateValue = useCallback(
+    (locationX) => {
+      if (!trackWidth) return;
+      const normalized = Math.min(Math.max(locationX / trackWidth, 0), 1);
+      const nextValue = minimumValue + normalized * range;
+      setInternalValue(nextValue);
+      scheduleOnChange(nextValue);
+    },
+    [minimumValue, range, scheduleOnChange, trackWidth]
+  );
 
   return (
     <View

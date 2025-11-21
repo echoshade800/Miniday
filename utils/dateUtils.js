@@ -73,16 +73,6 @@ export function getNextOccurrence(baseDate, repeatRule) {
 }
 
 /**
- * Convert lunar date to solar date (simplified stub)
- * In a real app, you'd use a proper lunar calendar library
- */
-export function lunarToSolar(year, month, day) {
-  // This is a stub - in production use a proper lunar calendar library
-  // For now, just return an approximate solar date
-  return new Date(year, month - 1, day).toISOString();
-}
-
-/**
  * Sort events by date (future first, then past)
  */
 export function sortEvents(events) {

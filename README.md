@@ -111,8 +111,7 @@ Welcome screen explaining app features with 3 slides and Privacy & Terms link.
 - Create new categories
 
 ### 4. Create/Edit Event
-- Event name & target date
-- Solar/Lunar calendar toggle (lunar is stub, converts to solar)
+- Event name & target date (Gregorian calendar)
 - Category selection
 - Pin toggle (auto-unpins other events)
 - Repeat rules (none/daily/weekly/monthly)
@@ -216,10 +215,10 @@ Here are concrete follow-up tasks to enhance the app:
    - Import events from file
    - Backup/restore entire app data
 
-7. **Lunar Calendar Integration**
-   - Integrate a proper lunar calendar library
+7. **Dual Calendar Support**
+   - Reintroduce lunar calendar selection with a proper library
    - Support accurate lunar-to-solar date conversion
-   - Display both calendar types in event details
+   - Optionally display both calendar types in event details
 
 8. **Widget Support**
    - Add home screen widget showing pinned event

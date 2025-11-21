@@ -60,7 +60,7 @@ Core Features:
   ✅ Swipe/long-press to delete
   ✅ Color-coded by status (blue=future, yellow=past)
   ✅ Offline-first with AsyncStorage
-  ✅ Solar/Lunar calendar toggle (lunar is stub)
+  ✅ Gregorian calendar date/time picker
 
 UI/UX Features:
   ✅ Empty states for no events/categories
@@ -211,7 +211,7 @@ KNOWN LIMITATIONS & STUBS
 =============================================================================
 
 Stubs (Placeholder Features):
-  - Lunar calendar conversion (shows solar only)
+  - Dual calendar support with accurate lunar conversion
   - Push notifications (toggle exists, not scheduled)
   - Dark mode toggle (UI only, not functional)
   - Data export (button exists, not implemented)
