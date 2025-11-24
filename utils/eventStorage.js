@@ -3,25 +3,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const EVENTS_KEY = 'MiniDays_events';
 const CATEGORIES_KEY = 'MiniDays_categories';
 
-<<<<<<< HEAD
-// Default categories with new icon system
+// Default categories with premium SVG icons (transparent background, app theme colors)
 const DEFAULT_CATEGORIES = [
-  { id: '1', name: 'Life', iconKey: 'life', icon: '🌞' },
-  { id: '2', name: 'Work', iconKey: 'work', icon: '💼' },
-  { id: '3', name: 'Anniversary', iconKey: 'celebration', icon: '🎉' },
-  { id: '4', name: 'Love', iconKey: 'love', icon: '❤️' },
-=======
-// Default categories with premium, sophisticated icons
-const DEFAULT_CATEGORIES = [
-  { id: '1', name: 'Life', icon: '✨' },
-  { id: '2', name: 'Work', icon: '🎯' },
-  { id: '3', name: 'Anniversary', icon: '🏆' },
-  { id: '4', name: 'Love', icon: '💎' },
-  { id: '5', name: 'Travel', icon: '✈️' },
-  { id: '6', name: 'Health', icon: '🌱' },
-  { id: '7', name: 'Study', icon: '📚' },
-  { id: '8', name: 'Birthday', icon: '🎂' },
->>>>>>> 04cc856fdfd4cd109ea457b7c8ad5aa83e921d9f
+  { id: '1', name: 'Life', icon: '✨', iconKey: 'life' },
+  { id: '2', name: 'Work', icon: '🎯', iconKey: 'work' },
+  { id: '3', name: 'Anniversary', icon: '🏆', iconKey: 'celebration' },
+  { id: '4', name: 'Love', icon: '💎', iconKey: 'love' },
+  { id: '5', name: 'Travel', icon: '✈️', iconKey: 'travel' },
+  { id: '6', name: 'Health', icon: '🌱', iconKey: 'fitness' },
+  { id: '7', name: 'Study', icon: '📚', iconKey: 'study' },
+  { id: '8', name: 'Birthday', icon: '🎂', iconKey: 'birthday' },
 ];
 
 /**

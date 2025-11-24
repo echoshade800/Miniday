@@ -2,67 +2,62 @@ import React from 'react';
 import Svg, { Path, Circle, Rect, G, Line, Polygon, Ellipse } from 'react-native-svg';
 
 /**
- * Category Icons - Flat Color Style
- * 扁平彩色风格图标，参考记账应用图标设计
- * - 粗线条（2px 黑色描边）
- * - 高饱和度色块填充
- * - 浅色圆形背景（#F7F7F7）
- * - 少量高光/阴影（卡通风）
+ * Category Icons - Premium Transparent Style
+ * 高级透明风格图标，符合APP主色调
+ * - 透明背景
+ * - 粗线条（2.5px 描边）
+ * - 使用APP主色调（Teal #2BA29A）及其配色
+ * - 精致、现代的视觉效果
  */
 
-// 图标颜色配置 - 高饱和度颜色
+// 图标颜色配置 - 符合APP主色调的透明背景设计
 const ICON_COLORS = {
-  life: '#4CAF50',        // 绿色 - 生活
-  work: '#2196F3',       // 蓝色 - 工作
-  love: '#E91E63',        // 粉色 - 爱情
-  celebration: '#FF9800', // 橙色 - 庆祝
-  birthday: '#9C27B0',    // 紫色 - 生日
-  graduation: '#00BCD4',  // 青色 - 毕业
-  flight: '#03A9F4',      // 天蓝色 - 飞机
-  home: '#FF5722',        // 深橙色 - 居家
-  fitness: '#F44336',     // 红色 - 健身
-  study: '#3F51B5',       // 靛蓝色 - 学习
-  game: '#FFC107',        // 黄色 - 游戏
-  music: '#9C27B0',       // 紫色 - 音乐
-  eating: '#FF6B6B',      // 珊瑚红 - 吃饭
-  pizza: '#FF9800',       // 橙色 - 披萨
-  coffee: '#8D6E63',      // 棕色 - 咖啡
-  toilet: '#607D8B',      // 蓝灰色 - 厕所
-  travel: '#00ACC1',      // 青蓝色 - 游玩
-  moon: '#5C6BC0',        // 靛紫色 - 赏月
-  walk: '#66BB6A',        // 浅绿色 - 散步
-  picnic: '#FF7043',      // 橙红色 - 野炊
-  thinking: '#AB47BC',    // 紫红色 - 思考
-  art: '#EC407A',         // 粉红色 - 画画
-  phone: '#42A5F5',       // 亮蓝色 - 手机
-  soccer: '#4CAF50',      // 绿色 - 足球
-  basketball: '#FF5722',   // 深橙色 - 篮球
-  archery: '#8BC34A',     // 浅绿色 - 射箭
-  swimming: '#00BCD4',     // 青色 - 游泳
-  flower: '#E91E63',      // 粉色 - 赏花
+  life: '#2BA29A',        // Teal - 生活
+  work: '#1D6F6A',        // Dark Teal - 工作
+  love: '#FF6B9D',        // Soft Pink - 爱情
+  celebration: '#FB923C', // Orange - 庆祝
+  birthday: '#C084FC',    // Lavender - 生日
+  graduation: '#2BA29A',  // Teal - 毕业
+  flight: '#60A5FA',      // Sky Blue - 飞机
+  home: '#34D399',        // Emerald - 居家
+  fitness: '#F87171',     // Coral - 健身
+  study: '#818CF8',       // Indigo - 学习
+  game: '#FBBF24',        // Amber - 游戏
+  music: '#C084FC',       // Lavender - 音乐
+  eating: '#FB923C',      // Orange - 吃饭
+  pizza: '#FBBF24',       // Amber - 披萨
+  coffee: '#A78BFA',      // Purple - 咖啡
+  toilet: '#64748B',      // Slate - 厕所
+  travel: '#2BA29A',      // Teal - 游玩
+  moon: '#818CF8',        // Indigo - 赏月
+  walk: '#34D399',        // Emerald - 散步
+  picnic: '#FB923C',      // Orange - 野炊
+  thinking: '#A78BFA',    // Purple - 思考
+  art: '#FF6B9D',         // Soft Pink - 画画
+  phone: '#60A5FA',       // Sky Blue - 手机
+  soccer: '#34D399',      // Emerald - 足球
+  basketball: '#F87171',  // Coral - 篮球
+  archery: '#FBBF24',     // Amber - 射箭
+  swimming: '#60A5FA',    // Sky Blue - 游泳
+  flower: '#FF6B9D',      // Soft Pink - 赏花
 };
 
-// 扁平风格图标包装器 - 带圆形背景
-const FlatIconWrapper = ({ children, size = 80, bgColor = '#F7F7F7', iconColor, strokeWidth = 2 }) => {
+// 扁平风格图标包装器 - 透明背景
+const FlatIconWrapper = ({ children, size = 80, bgColor = 'transparent', iconColor, strokeWidth = 2.5 }) => {
   // 计算缩放比例，使图标内容适应不同尺寸
   const scale = size / 80;
-  const iconSize = 24 * scale; // 图标内容区域大小
-  const centerX = size / 2;
-  const centerY = size / 2;
-  const radius = (size / 2) - 2; // 留2px边距
-  
+  const iconSize = 28 * scale; // 增大图标内容区域以获得更好的视觉效果
+
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* 圆形背景 */}
-      <Circle cx={centerX} cy={centerY} r={radius} fill={bgColor} />
       {/* 图标内容 - 居中显示 */}
-      <G 
+      <G
         transform={`translate(${(size - iconSize) / 2}, ${(size - iconSize) / 2}) scale(${iconSize / 24})`}
-        stroke="#000000" 
-        strokeWidth={strokeWidth} 
-        strokeLinecap="round" 
+        stroke={iconColor || '#2BA29A'}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
         strokeLinejoin="round"
-        fill={iconColor || '#000000'}>
+        fill={iconColor || '#2BA29A'}>
         {children}
       </G>
     </Svg>
