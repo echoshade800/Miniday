@@ -17,6 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
+import CategoryIcon from '../components/CategoryIcon';
+import IconPicker from '../components/IconPicker';
+import { CATEGORY_ICON_METADATA } from '../components/CategoryIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { scheduleEventNotification, cancelEventNotifications, requestNotificationPermissions } from '../utils/notificationUtils';
 import { useTheme } from '../hooks/useTheme';
@@ -44,7 +47,7 @@ import { DEFAULT_BACKGROUND_CONTRAST, DEFAULT_COUNTER_TEXT_COLOR } from '../util
 export default function CreateEventScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { events, categories, addEvent, updateEvent } = useAppStore();
+  const { events, categories, addEvent, updateEvent, darkMode } = useAppStore();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -58,6 +61,8 @@ export default function CreateEventScreen() {
       : new Date()
   );
   const [categoryId, setCategoryId] = useState(editingEvent?.categoryId || '1');
+  const [eventIconKey, setEventIconKey] = useState(editingEvent?.iconKey || null);
+  const [showIconPicker, setShowIconPicker] = useState(false);
   const [isPinned, setIsPinned] = useState(editingEvent?.isPinned || false);
   const [repeatRule, setRepeatRule] = useState(editingEvent?.repeatRule || 'none');
   const [remind, setRemind] = useState(editingEvent?.remind || false);
@@ -105,6 +110,7 @@ export default function CreateEventScreen() {
       title: title.trim(),
       targetDate: targetDate.toISOString(),
       categoryId,
+      iconKey: eventIconKey, // Custom icon for this event
       isPinned,
       repeatRule,
       remind,
@@ -263,7 +269,16 @@ export default function CreateEventScreen() {
             key={category.id}
             style={[styles.optionButton, categoryId === category.id && styles.optionButtonActive]}
             onPress={() => setCategoryId(category.id)}>
-            <Text style={styles.categoryEmoji}>{category.icon}</Text>
+            <View style={styles.categoryIconWrapper}>
+              <CategoryIcon
+                glyph={category.icon || '🧁'}
+                iconKey={category.iconKey}
+                label={category.name}
+                variantKey={category.id}
+                size={24}
+                isDark={darkMode}
+              />
+            </View>
             <Text
               style={[
                 styles.optionText,
@@ -290,6 +305,7 @@ export default function CreateEventScreen() {
       { value: 'daily', label: 'Daily' },
       { value: 'weekly', label: 'Weekly' },
       { value: 'monthly', label: 'Monthly' },
+      { value: 'yearly', label: 'Yearly' },
     ];
 
     return (
@@ -362,6 +378,48 @@ export default function CreateEventScreen() {
         </View>
 
         {renderCategoryPicker()}
+
+        <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.label, { color: theme.colors.title }]}>Event Icon</Text>
+          <Text style={[styles.hint, { color: theme.colors.body, marginBottom: theme.spacing.md }]}>
+            Choose an icon to represent this event
+          </Text>
+          <TouchableOpacity
+            style={[styles.iconSelectorButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.divider }]}
+            onPress={() => setShowIconPicker(true)}>
+            <View style={styles.iconSelectorContent}>
+              {eventIconKey ? (
+                <CategoryIcon
+                  iconKey={eventIconKey}
+                  label=""
+                  variantKey={eventIconKey}
+                  size={32}
+                  isDark={darkMode}
+                />
+              ) : (
+                <View style={[styles.iconPlaceholder, { backgroundColor: theme.colors.surfaceAlt }]}>
+                  <Ionicons name="image-outline" size={20} color={theme.colors.body} />
+                </View>
+              )}
+              <View style={styles.iconSelectorText}>
+                <Text style={[styles.iconSelectorLabel, { color: theme.colors.title }]}>
+                  {eventIconKey ? CATEGORY_ICON_METADATA.find(m => m.key === eventIconKey)?.label || 'Custom Icon' : 'Select Icon'}
+                </Text>
+                <Text style={[styles.iconSelectorHint, { color: theme.colors.body }]}>
+                  {eventIconKey ? 'Tap to change' : 'Tap to choose'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.body} />
+            </View>
+          </TouchableOpacity>
+          {eventIconKey && (
+            <TouchableOpacity
+              style={styles.clearIconButton}
+              onPress={() => setEventIconKey(null)}>
+              <Text style={[styles.clearIconText, { color: theme.colors.body }]}>Clear icon</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
           <View style={styles.switchRow}>
@@ -542,6 +600,40 @@ export default function CreateEventScreen() {
           </View>
         </Modal>
       )}
+
+      {/* Icon Picker Modal */}
+      <Modal
+        visible={showIconPicker}
+        animationType="slide"
+        transparent
+        presentationStyle="overFullScreen"
+        onRequestClose={() => setShowIconPicker(false)}>
+        <View style={styles.pickerModalWrapper}>
+          <TouchableWithoutFeedback onPress={() => setShowIconPicker(false)}>
+            <View style={styles.pickerModalBackdrop} />
+          </TouchableWithoutFeedback>
+          <View style={[styles.pickerModalContainer, { backgroundColor: theme.colors.surface }]}>
+            <Text style={[styles.pickerModalTitle, { color: theme.colors.title }]}>Select Icon</Text>
+            <ScrollView style={styles.iconPickerScroll} showsVerticalScrollIndicator={false}>
+              <IconPicker
+                selectedIconKey={eventIconKey}
+                onSelectIcon={(key) => {
+                  setEventIconKey(key);
+                  setShowIconPicker(false);
+                }}
+                style={styles.iconPickerContainer}
+              />
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalActionButton}
+                onPress={() => setShowIconPicker(false)}>
+                <Text style={[styles.modalActionText, { color: theme.colors.body }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -663,9 +755,8 @@ const createStyles = (theme) =>
     optionTextActive: {
       color: theme.colors.primary,
     },
-    categoryEmoji: {
-      fontSize: 18,
-      marginRight: 6,
+    categoryIconWrapper: {
+      marginRight: theme.spacing.xs,
     },
     addCategoryButton: {
       paddingVertical: 10,
@@ -748,5 +839,48 @@ const createStyles = (theme) =>
     modalActionText: {
       ...theme.typography.body,
       fontWeight: '600',
+    },
+    iconSelectorButton: {
+      borderRadius: theme.radii.md,
+      borderWidth: theme.input.borderWidth,
+      padding: theme.spacing.md,
+    },
+    iconSelectorContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: theme.spacing.md,
+    },
+    iconPlaceholder: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconSelectorText: {
+      flex: 1,
+      minWidth: 0,
+    },
+    iconSelectorLabel: {
+      ...theme.typography.body,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    iconSelectorHint: {
+      ...theme.typography.caption,
+    },
+    clearIconButton: {
+      marginTop: theme.spacing.sm,
+      alignSelf: 'flex-start',
+    },
+    clearIconText: {
+      ...theme.typography.bodySmall,
+      fontWeight: '500',
+    },
+    iconPickerScroll: {
+      maxHeight: 400,
+    },
+    iconPickerContainer: {
+      paddingVertical: theme.spacing.md,
     },
   });

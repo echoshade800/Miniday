@@ -1,4 +1,4 @@
-# DaySprout - Quick Start Guide
+# Dayer - Quick Start Guide
 
 ## 🚀 Installation & Running
 

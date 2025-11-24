@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   ScrollView,
   Alert,
 } from 'react-native';
@@ -13,6 +12,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
+import IconPicker from '../components/IconPicker';
+import { CATEGORY_ICON_METADATA } from '../components/CategoryIcons';
 import { useTheme } from '../hooks/useTheme';
 
 /**
@@ -21,22 +22,9 @@ import { useTheme } from '../hooks/useTheme';
  *
  * Features:
  * - Category name input
- * - Emoji/icon selection
+ * - SVG icon selection
  * - Save and return to categories list
- *
- * To extend:
- * - Add more icon options
- * - Add custom color selection
- * - Add category templates
- * - Add category sorting order
  */
-
-const EMOJI_OPTIONS = [
-  '🌟', '💼', '🎉', '❤️', '🎂', '🎓',
-  '✈️', '🏠', '💪', '📚', '🎮', '🎵',
-  '🍕', '☕', '🌈', '⭐', '🔥', '💡',
-  '🎨', '📱', '⚽', '🎯', '🌸', '🌙',
-];
 
 export default function CreateCategoryScreen() {
   const router = useRouter();
@@ -44,7 +32,7 @@ export default function CreateCategoryScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [name, setName] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('🌟');
+  const [selectedIconKey, setSelectedIconKey] = useState(CATEGORY_ICON_METADATA[0].key);
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -58,7 +46,9 @@ export default function CreateCategoryScreen() {
     try {
       await addCategory({
         name: name.trim(),
-        icon: selectedIcon,
+        iconKey: selectedIconKey,
+        // Keep icon for backward compatibility (using first emoji as fallback)
+        icon: '🌟',
       });
 
       router.back();
@@ -98,19 +88,11 @@ export default function CreateCategoryScreen() {
 
         <View style={styles.field}>
           <Text style={styles.label}>Icon</Text>
-          <View style={styles.iconGrid}>
-            {EMOJI_OPTIONS.map((emoji) => (
-              <AnimatedScaleTouchable
-                key={emoji}
-                style={[
-                  styles.iconButton,
-                  selectedIcon === emoji && styles.iconButtonActive,
-                ]}
-                onPress={() => setSelectedIcon(emoji)}>
-                <Text style={styles.iconEmoji}>{emoji}</Text>
-              </AnimatedScaleTouchable>
-            ))}
-          </View>
+          <IconPicker
+            selectedIconKey={selectedIconKey}
+            onSelectIcon={setSelectedIconKey}
+            style={styles.iconPicker}
+          />
         </View>
       </ScrollView>
 
@@ -186,27 +168,8 @@ const createStyles = (theme) =>
       borderWidth: theme.input.borderWidth,
       borderColor: theme.colors.divider,
     },
-    iconGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-    },
-    iconButton: {
-      width: 56,
-      height: 56,
-      borderRadius: 28,
-      backgroundColor: theme.colors.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 2,
-      borderColor: theme.colors.divider,
-    },
-    iconButtonActive: {
-      backgroundColor: theme.colors.accentLight,
-      borderColor: theme.colors.primary,
-    },
-    iconEmoji: {
-      fontSize: 28,
+    iconPicker: {
+      marginTop: theme.spacing.sm,
     },
     footer: {
       padding: 20,

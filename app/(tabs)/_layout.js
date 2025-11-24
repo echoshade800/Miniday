@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
+import { TAB_BAR_BASE_HEIGHT, TAB_BAR_PADDING_TOP, TAB_BAR_PADDING_BOTTOM } from '../../constants/TabBarConstants';
 
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
@@ -30,19 +32,19 @@ function TabIcon({ name, color, focused, size }) {
 
 export default function TabLayout() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  
   const tabBarStyle = useMemo(
     () => ({
-      position: 'absolute',
-      marginHorizontal: 20,
-      marginBottom: 20,
-      borderRadius: 28,
       backgroundColor: theme.colors.surface,
-      height: 70,
-      paddingBottom: 8,
-      paddingTop: 6,
-      ...theme.shadow.soft,
+      height: TAB_BAR_BASE_HEIGHT + insets.bottom,
+      paddingBottom: insets.bottom + TAB_BAR_PADDING_BOTTOM,
+      paddingTop: TAB_BAR_PADDING_TOP,
+      borderTopWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
     }),
-    [theme]
+    [theme, insets.bottom]
   );
 
   return (

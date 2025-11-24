@@ -69,7 +69,7 @@ export default function AboutScreen() {
           <View style={styles.iconContainer}>
             <Ionicons name="calendar" size={64} color={theme.colors.primary} />
           </View>
-          <Text style={styles.appName}>DaySprout</Text>
+          <Text style={styles.appName}>Dayer</Text>
           <Text style={styles.emojiDecor}>✨ 💗 🎀</Text>
           <Text style={styles.appTagline}>
             A beautifully simple way to track countdowns, anniversaries, and important
@@ -115,7 +115,7 @@ export default function AboutScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Made with ❤️ for counting days</Text>
-          <Text style={styles.copyright}>© 2024 DaySprout. All rights reserved.</Text>
+          <Text style={styles.copyright}>© 2024 Dayer. All rights reserved.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

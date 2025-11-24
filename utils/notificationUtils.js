@@ -101,6 +101,14 @@ export async function scheduleEventNotification(event) {
           minute: reminderDate.getMinutes(),
           repeats: true,
         };
+      } else if (event.repeat === 'yearly') {
+        trigger = {
+          day: reminderDate.getDate(),
+          month: reminderDate.getMonth() + 1, // month is 1-12 in expo-notifications
+          hour: reminderDate.getHours(),
+          minute: reminderDate.getMinutes(),
+          repeats: true,
+        };
       }
 
       if (trigger) {

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import { SECTION_EMOJIS } from '../../utils/theme';
 import { useAppStore } from '../../store/useAppStore';
 import { useTheme } from '../../hooks/useTheme';
+import { getTabBarTotalHeight } from '../../constants/TabBarConstants';
 
 /**
  * Profile & Settings Screen
@@ -15,7 +16,9 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { themeMode, setThemeMode, loadThemeMode } = useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = getTabBarTotalHeight(insets.bottom);
+  const styles = useMemo(() => createStyles(theme, tabBarHeight), [theme, tabBarHeight]);
   const isDarkMode = themeMode === 'dark';
   const [defaultReminder, setDefaultReminder] = useState(true);
 
@@ -97,7 +100,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: theme.colors.body }]}>DaySprout v1.0.0</Text>
+          <Text style={[styles.footerText, { color: theme.colors.body }]}>Dayer v1.0.0</Text>
           <Text style={[styles.footerSubtext, { color: theme.colors.body }]}>A beautifully simple way to track countdowns</Text>
         </View>
       </ScrollView>
@@ -106,7 +109,7 @@ export default function ProfileScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, tabBarHeight) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -121,7 +124,7 @@ const createStyles = (theme) =>
       flexShrink: 1,
     },
     scrollContent: {
-      paddingBottom: 60,
+      paddingBottom: tabBarHeight + 16,
     },
     sectionCard: {
       marginHorizontal: 20,

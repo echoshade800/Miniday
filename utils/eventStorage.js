@@ -3,12 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const EVENTS_KEY = 'MiniDays_events';
 const CATEGORIES_KEY = 'MiniDays_categories';
 
-// Default categories
+// Default categories with new icon system
 const DEFAULT_CATEGORIES = [
-  { id: '1', name: 'Life', icon: '🌞' }, // Changed from 🌟 to 🌞
-  { id: '2', name: 'Work', icon: '💼' },
-  { id: '3', name: 'Anniversary', icon: '🎉' },
-  { id: '4', name: 'Love', icon: '❤️' },
+  { id: '1', name: 'Life', iconKey: 'life', icon: '🌞' },
+  { id: '2', name: 'Work', iconKey: 'work', icon: '💼' },
+  { id: '3', name: 'Anniversary', iconKey: 'celebration', icon: '🎉' },
+  { id: '4', name: 'Love', iconKey: 'love', icon: '❤️' },
 ];
 
 /**

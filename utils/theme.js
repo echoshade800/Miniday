@@ -259,3 +259,11 @@ export const getEmojiForCategory = (categories = [], categoryId) => {
   return category?.icon || '🧁';
 };
 
+export const getIconKeyForCategory = (categories = [], categoryId) => {
+  if (!categoryId || !categories?.length) {
+    return null;
+  }
+  const category = categories.find((cat) => cat.id === categoryId);
+  return category?.iconKey || null;
+};
+

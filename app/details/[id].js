@@ -19,9 +19,11 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import ViewShot from 'react-native-view-shot';
+import Slider from '@react-native-community/slider';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, formatDate } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
+import CategoryIcon from '../../components/CategoryIcon';
 import { useTheme } from '../../hooks/useTheme';
 import {
   DEFAULT_BACKGROUND_CONTRAST,
@@ -31,6 +33,7 @@ import {
   getCardOverlayColor,
   getEventContrast,
   getEventTextColor,
+  detectImageTextColor,
 } from '../../utils/cardStyleUtils';
 
 const pluralize = (value, unit) => `${value} ${unit}${value === 1 ? '' : 's'}`;
@@ -116,7 +119,7 @@ const describeDisplayMode = (mode) => {
 export default function DetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { events, categories, deleteEvent, updateEvent } = useAppStore();
+  const { events, categories, deleteEvent, updateEvent, darkMode } = useAppStore();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [event, setEvent] = useState(null);
@@ -124,11 +127,6 @@ export default function DetailsScreen() {
   const [countdownMode, setCountdownMode] = useState('forward'); // 'forward' or 'backward'
   const [displayMode, setDisplayMode] = useState('days');
   const [backgroundEditorVisible, setBackgroundEditorVisible] = useState(false);
-  const [editorBackgroundImage, setEditorBackgroundImage] = useState(null);
-  const [editorContrast, setEditorContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
-  const [editorTextColor, setEditorTextColor] = useState(DEFAULT_COUNTER_TEXT_COLOR);
-  const [savingBackground, setSavingBackground] = useState(false);
-  const [previewContrast, setPreviewContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
   const shareViewRef = useRef(null);
 
   useEffect(() => {
@@ -172,49 +170,6 @@ export default function DetailsScreen() {
     );
   };
 
-  const handlePickImage = async () => {
-    try {
-      // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission', 'Photo library access is required to select background image');
-        return;
-      }
-
-      // Show image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        setEditorBackgroundImage(imageUri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'Failed to select image, please try again');
-    }
-  };
-
-  const handleRemoveImage = () => {
-    Alert.alert(
-      'Remove Background',
-      'Are you sure you want to remove the background image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          onPress: () => {
-            setEditorBackgroundImage(null);
-          },
-        },
-      ]
-    );
-  };
-
   const handleToggleCountdownMode = async () => {
     const newMode = countdownMode === 'forward' ? 'backward' : 'forward';
     setCountdownMode(newMode);
@@ -223,33 +178,13 @@ export default function DetailsScreen() {
 
   const openBackgroundEditor = () => {
     if (!event) return;
-    const initialContrast = clampContrast(event.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST);
-    setEditorContrast(initialContrast);
-    setPreviewContrast(initialContrast);
-    setEditorBackgroundImage(event.backgroundImage ?? null);
-    setEditorTextColor(event.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR);
     setBackgroundEditorVisible(true);
   };
 
-  const handleApplyBackgroundSettings = async () => {
-    if (!event) return;
-    try {
-      setSavingBackground(true);
-      const updates = {
-        backgroundImage: editorBackgroundImage ?? null,
-        backgroundContrast: clampContrast(editorContrast),
-        counterTextColor: editorTextColor,
-      };
-      await updateEvent(event.id, updates);
-      setEvent((prev) => (prev ? { ...prev, ...updates } : prev));
-      setBackgroundEditorVisible(false);
-    } catch (error) {
-      console.error('Error updating background settings:', error);
-      Alert.alert('Error', 'Failed to update background settings. Please try again.');
-    } finally {
-      setSavingBackground(false);
-    }
-  };
+  // Callback to handle background settings update from modal
+  const handleBackgroundSettingsUpdate = useCallback((updates) => {
+    setEvent((prev) => (prev ? { ...prev, ...updates } : prev));
+  }, []);
 
   const cycleDisplayMode = () => {
     if (availableDisplayModes.length <= 1) return;
@@ -366,7 +301,6 @@ export default function DetailsScreen() {
   const rawDaysDifference = targetDate ? calculateDaysDifference(targetDate) : 0;
   const displayDays = countdownMode === 'backward' ? -rawDaysDifference : rawDaysDifference;
   const totalDays = Math.max(0, Math.floor(Math.abs(displayDays)));
-  const formattedDate = targetDate ? formatDate(targetDate) : '';
   const availableDisplayModes = useMemo(() => getAvailableDisplayModes(totalDays), [totalDays]);
 
   useEffect(() => {
@@ -377,7 +311,9 @@ export default function DetailsScreen() {
 
   const displayValue = formatCountdownValue(displayMode, totalDays);
   const distanceSuffix = getDistanceSuffix(displayDays, countdownMode);
-  const distanceText = `${displayValue} ${distanceSuffix}`.trim();
+  // 使用 useMemo 稳定 distanceText 和 formattedDate，避免 BackgroundEditorModal 不必要的重渲染
+  const distanceText = useMemo(() => `${displayValue} ${distanceSuffix}`.trim(), [displayValue, distanceSuffix]);
+  const formattedDateMemo = useMemo(() => (targetDate ? formatDate(targetDate) : ''), [targetDate]);
   const isDaysMode = displayMode === 'days';
   const countdownTextProps = {
     numberOfLines: 2,
@@ -393,16 +329,12 @@ export default function DetailsScreen() {
     ? `Cycles between ${availableDisplayModes.map((mode) => describeDisplayMode(mode)).join(' → ')}`
     : undefined;
 
-
-  const handlePreviewContrastChange = useCallback((value) => {
-    setPreviewContrast(clampContrast(value));
+  // 稳定化回调函数，避免 BackgroundEditorModal 不必要的重渲染
+  const handleCloseBackgroundEditor = useCallback(() => {
+    setBackgroundEditorVisible(false);
   }, []);
 
-  const handlePreviewContrastComplete = useCallback((value) => {
-    const clamped = clampContrast(value);
-    setPreviewContrast(clamped);
-    setEditorContrast(clamped);
-  }, []);
+
 
   if (!event) {
     return (
@@ -412,7 +344,7 @@ export default function DetailsScreen() {
             <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
           </AnimatedScaleTouchable>
           <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
-            DaySprout
+            Dayer
           </Text>
           <View style={styles.headerAction}>
             <Ionicons name="arrow-back" size={24} color="transparent" />
@@ -432,7 +364,7 @@ export default function DetailsScreen() {
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
         <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
-          DaySprout
+          Dayer
         </Text>
         <AnimatedScaleTouchable style={styles.headerAction} onPress={handleEdit}>
           <Text style={[styles.editButton, { color: theme.colors.primary }]} numberOfLines={1} ellipsizeMode="tail">
@@ -478,7 +410,7 @@ export default function DetailsScreen() {
             </TouchableOpacity>
 
             <Text style={[styles.dateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
-              {formattedDate}
+              {formattedDateMemo}
             </Text>
           </View>
           </View>
@@ -513,8 +445,15 @@ export default function DetailsScreen() {
                 Category
               </Text>
             </View>
-            <View style={styles.detailRight}>
-              <Text style={styles.categoryEmoji}>{category?.icon}</Text>
+            <View style={[styles.detailRight, styles.categoryRow]}>
+              <CategoryIcon
+                glyph={category?.icon || '🧁'}
+                iconKey={event?.iconKey || category?.iconKey}
+                label={category?.name || 'Unknown'}
+                variantKey={event?.id || category?.id}
+                size={24}
+                isDark={darkMode}
+              />
               <Text
                 style={[styles.detailValue, { color: theme.colors.body }]}
                 numberOfLines={1}
@@ -552,6 +491,8 @@ export default function DetailsScreen() {
                 ? 'Weekly'
                 : event.repeatRule === 'monthly'
                 ? 'Monthly'
+                : event.repeatRule === 'yearly'
+                ? 'Yearly'
                 : event.repeatRule}
             </Text>
           </View>
@@ -606,119 +547,267 @@ export default function DetailsScreen() {
                 <Text style={[styles.shareCountdownSuffix, { color: textColor }]}>{` ${distanceSuffix}`}</Text>
               </Text>
               <Text style={[styles.shareDateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
-                {formattedDate}
+                {formattedDateMemo}
               </Text>
             </View>
           </View>
         </ViewShot>
       </View>
 
-      <Modal
+      <BackgroundEditorModal
         visible={backgroundEditorVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setBackgroundEditorVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
-            <BackgroundPreview
-              imageUri={editorBackgroundImage}
-              contrast={previewContrast}
-              textColor={editorTextColor}
-              gradientColors={gradientColors}
-              containerStyle={[styles.editorPreview, { backgroundColor: theme.colors.surfaceAlt }]}
-              contentStyle={styles.editorPreviewContent}>
-              <Text style={[styles.previewTitle, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
-                {event?.title || 'Event Title'}
-              </Text>
-              <Text style={[styles.previewDistance, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
-                {distanceText}
-              </Text>
-              <Text style={[styles.previewDate, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
-                {formattedDate || 'YYYY-MM-DD'}
-              </Text>
-            </BackgroundPreview>
-
-            <View style={styles.editorSection}>
-              <Text style={[styles.editorLabel, { color: theme.colors.title }]}>
-                Contrast ({Math.round((previewContrast / 0.85) * 100)}%)
-              </Text>
-              <SimpleSlider
-                value={previewContrast}
-                minimumValue={0}
-                maximumValue={0.85}
-                onValueChange={handlePreviewContrastChange}
-                onSlidingComplete={handlePreviewContrastComplete}
-                trackColor={theme.colors.surfaceAlt}
-                fillColor={theme.colors.primary}
-                thumbColor={theme.colors.card}
-              />
-            </View>
-
-            <View style={styles.editorSection}>
-              <Text style={[styles.editorLabel, { color: theme.colors.title }]}>Text color</Text>
-              <View style={styles.colorOptionsRow}>
-                {TEXT_COLOR_OPTIONS.map((option) => {
-                  const isActive = editorTextColor.toLowerCase() === option.toLowerCase();
-                  return (
-                    <TouchableOpacity
-                      key={option}
-                      style={[
-                        styles.colorOption,
-                        { borderColor: theme.colors.divider },
-                        isActive && { borderColor: theme.colors.primary },
-                      ]}
-                      onPress={() => setEditorTextColor(option)}>
-                      <View style={[styles.colorSwatch, { backgroundColor: option }]} />
-                      <Text style={[styles.colorOptionLabel, { color: theme.colors.title }]}>
-                        {option === '#000000' ? 'Black' : 'White'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={styles.editorButtonsRow}>
-              <TouchableOpacity
-                style={[styles.modalButton, { borderColor: theme.colors.primary, flex: 1 }]}
-                onPress={handlePickImage}>
-                <Text style={[styles.modalButtonText, { color: theme.colors.primary }]}>Change Image</Text>
-              </TouchableOpacity>
-              {editorBackgroundImage && (
-                <TouchableOpacity
-                  style={[styles.modalButton, { borderColor: theme.colors.danger, flex: 1 }]}
-                  onPress={handleRemoveImage}>
-                  <Text style={[styles.modalButtonText, { color: theme.colors.danger }]}>Remove Image</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={styles.editorFooter}>
-              <AnimatedScaleTouchable
-                style={[styles.editorActionButton, { borderColor: theme.colors.divider }]}
-                onPress={() => setBackgroundEditorVisible(false)}>
-                <Text style={[styles.editorActionText, { color: theme.colors.body }]}>Close</Text>
-              </AnimatedScaleTouchable>
-              <AnimatedScaleTouchable
-                style={[
-                  styles.editorActionButton,
-                  { borderColor: theme.colors.primary },
-                  savingBackground && styles.saveButtonDisabled,
-                ]}
-                onPress={handleApplyBackgroundSettings}
-                disabled={savingBackground}>
-                <Text style={[styles.editorActionText, { color: theme.colors.primary }]}>
-                  {savingBackground ? 'Saving...' : 'Save'}
-                </Text>
-              </AnimatedScaleTouchable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        event={event}
+        distanceText={distanceText}
+        formattedDate={formattedDateMemo}
+        gradientColors={gradientColors}
+        theme={theme}
+        styles={styles}
+        onClose={handleCloseBackgroundEditor}
+        onUpdate={handleBackgroundSettingsUpdate}
+        updateEvent={updateEvent}
+      />
     </SafeAreaView>
   );
 }
+
+// 背景编辑器 Modal 组件 - 独立管理所有背景编辑状态，避免影响主页面重渲染
+// 解决：调整对比度时，进度轴/滑杆不再闪烁
+const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
+  visible,
+  event,
+  distanceText,
+  formattedDate,
+  gradientColors,
+  theme,
+  styles,
+  onClose,
+  onUpdate,
+  updateEvent,
+}) {
+  const [editorBackgroundImage, setEditorBackgroundImage] = useState(null);
+  const [editorContrast, setEditorContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
+  const [editorTextColor, setEditorTextColor] = useState(DEFAULT_COUNTER_TEXT_COLOR);
+  const [savingBackground, setSavingBackground] = useState(false);
+  const [previewContrast, setPreviewContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
+
+  // 初始化编辑器状态（仅在 Modal 打开时）
+  useEffect(() => {
+    if (visible && event) {
+      const initialContrast = clampContrast(event.backgroundContrast ?? DEFAULT_BACKGROUND_CONTRAST);
+      setEditorContrast(initialContrast);
+      setPreviewContrast(initialContrast);
+      setEditorBackgroundImage(event.backgroundImage ?? null);
+      setEditorTextColor(event.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR);
+    }
+  }, [visible, event]);
+
+  const handlePickImage = useCallback(async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission', 'Photo library access is required to select background image');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setEditorBackgroundImage(imageUri);
+        
+        // 自动检测图片颜色并设置默认字体颜色
+        try {
+          const suggestedTextColor = await detectImageTextColor(imageUri);
+          setEditorTextColor(suggestedTextColor);
+        } catch (error) {
+          console.error('Error detecting image color:', error);
+          // 如果检测失败，保持当前字体颜色不变
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image, please try again');
+    }
+  }, []);
+
+  const handleRemoveImage = useCallback(() => {
+    Alert.alert(
+      'Remove Background',
+      'Are you sure you want to remove the background image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          onPress: () => {
+            setEditorBackgroundImage(null);
+          },
+        },
+      ]
+    );
+  }, []);
+
+  // 对比度预览变化 - 仅更新预览状态，不影响外部
+  // 优化：避免不必要的 clamp，因为 SimpleSlider 已经确保值在范围内
+  const handlePreviewContrastChange = useCallback((value) => {
+    // SimpleSlider 已经确保值在 [0, 0.85] 范围内，直接使用即可
+    // 只在值真正变化时更新，避免不必要的重渲染
+    setPreviewContrast((prev) => {
+      const newValue = clampContrast(value);
+      // 如果值没有显著变化（考虑浮点数精度），返回原值避免重渲染
+      if (Math.abs(prev - newValue) < 0.001) {
+        return prev;
+      }
+      return newValue;
+    });
+  }, []);
+
+  // 对比度调整完成 - 同步到编辑器状态
+  const handlePreviewContrastComplete = useCallback((value) => {
+    const clamped = clampContrast(value);
+    setPreviewContrast(clamped);
+    setEditorContrast(clamped);
+  }, []);
+
+  const handleApplyBackgroundSettings = useCallback(async () => {
+    if (!event) return;
+    try {
+      setSavingBackground(true);
+      const updates = {
+        backgroundImage: editorBackgroundImage ?? null,
+        backgroundContrast: clampContrast(editorContrast),
+        counterTextColor: editorTextColor,
+      };
+      await updateEvent(event.id, updates);
+      onUpdate(updates);
+      onClose();
+    } catch (error) {
+      console.error('Error updating background settings:', error);
+      Alert.alert('Error', 'Failed to update background settings. Please try again.');
+    } finally {
+      setSavingBackground(false);
+    }
+  }, [event, editorBackgroundImage, editorContrast, editorTextColor, updateEvent, onUpdate, onClose]);
+
+  // 使用 useMemo 稳定样式对象，避免不必要的重渲染
+  const sliderTrackColor = useMemo(() => theme.colors.surfaceAlt, [theme.colors.surfaceAlt]);
+  const sliderFillColor = useMemo(() => theme.colors.primary, [theme.colors.primary]);
+  const sliderThumbColor = useMemo(() => theme.colors.card, [theme.colors.card]);
+  const editorPreviewStyle = useMemo(
+    () => [styles.editorPreview, { backgroundColor: theme.colors.surfaceAlt }],
+    [styles.editorPreview, theme.colors.surfaceAlt]
+  );
+
+  if (!event) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
+          <BackgroundPreview
+            imageUri={editorBackgroundImage}
+            contrast={previewContrast}
+            textColor={editorTextColor}
+            gradientColors={gradientColors}
+            containerStyle={editorPreviewStyle}
+            contentStyle={styles.editorPreviewContent}>
+            <Text style={[styles.previewTitle, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+              {event?.title || 'Event Title'}
+            </Text>
+            <Text style={[styles.previewDistance, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+              {distanceText}
+            </Text>
+            <Text style={[styles.previewDate, { color: editorTextColor }]} numberOfLines={1} ellipsizeMode="tail">
+              {formattedDate || 'YYYY-MM-DD'}
+            </Text>
+          </BackgroundPreview>
+
+          <View style={styles.editorSection}>
+            <Text style={[styles.editorLabel, { color: theme.colors.title }]}>
+              Contrast ({Math.round((previewContrast / 0.85) * 100)}%)
+            </Text>
+            <Slider
+              style={styles.slider}
+              value={previewContrast}
+              minimumValue={0}
+              maximumValue={0.85}
+              step={0.01}
+              onValueChange={handlePreviewContrastChange}
+              onSlidingComplete={handlePreviewContrastComplete}
+              minimumTrackTintColor={sliderFillColor}
+              maximumTrackTintColor={sliderTrackColor}
+              thumbTintColor={sliderThumbColor}
+            />
+          </View>
+
+          <View style={styles.editorSection}>
+            <Text style={[styles.editorLabel, { color: theme.colors.title }]}>Text color</Text>
+            <View style={styles.colorOptionsRow}>
+              {TEXT_COLOR_OPTIONS.map((option) => {
+                const isActive = editorTextColor.toLowerCase() === option.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.colorOption,
+                      { borderColor: theme.colors.divider },
+                      isActive && { borderColor: theme.colors.primary },
+                    ]}
+                    onPress={() => setEditorTextColor(option)}>
+                    <View style={[styles.colorSwatch, { backgroundColor: option }]} />
+                    <Text style={[styles.colorOptionLabel, { color: theme.colors.title }]}>
+                      {option === '#000000' ? 'Black' : 'White'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.editorButtonsRow}>
+            <TouchableOpacity
+              style={[styles.modalButton, { borderColor: theme.colors.primary, flex: 1 }]}
+              onPress={handlePickImage}>
+              <Text style={[styles.modalButtonText, { color: theme.colors.primary }]}>Change Image</Text>
+            </TouchableOpacity>
+            {editorBackgroundImage && (
+              <TouchableOpacity
+                style={[styles.modalButton, { borderColor: theme.colors.danger, flex: 1 }]}
+                onPress={handleRemoveImage}>
+                <Text style={[styles.modalButtonText, { color: theme.colors.danger }]}>Remove Image</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.editorFooter}>
+            <AnimatedScaleTouchable
+              style={[styles.editorActionButton, { borderColor: theme.colors.divider }]}
+              onPress={onClose}>
+              <Text style={[styles.editorActionText, { color: theme.colors.body }]}>Close</Text>
+            </AnimatedScaleTouchable>
+            <AnimatedScaleTouchable
+              style={[
+                styles.editorActionButton,
+                { borderColor: theme.colors.primary },
+                savingBackground && styles.saveButtonDisabled,
+              ]}
+              onPress={handleApplyBackgroundSettings}
+              disabled={savingBackground}>
+              <Text style={[styles.editorActionText, { color: theme.colors.primary }]}>
+                {savingBackground ? 'Saving...' : 'Save'}
+              </Text>
+            </AnimatedScaleTouchable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+});
 
 const BackgroundPreview = React.memo(function BackgroundPreview({
   imageUri,
@@ -743,100 +832,6 @@ const BackgroundPreview = React.memo(function BackgroundPreview({
     </View>
   );
 });
-
-const SimpleSlider = ({
-  value,
-  onValueChange,
-  onSlidingComplete,
-  minimumValue = 0,
-  maximumValue = 1,
-  trackColor,
-  fillColor,
-  thumbColor,
-}) => {
-  const [trackWidth, setTrackWidth] = useState(0);
-  const [internalValue, setInternalValue] = useState(value);
-  const frameRef = useRef(null);
-  const pendingValueRef = useRef(value);
-
-  useEffect(() => {
-    setInternalValue(value);
-    pendingValueRef.current = value;
-  }, [value]);
-
-  useEffect(
-    () => () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
-      }
-    },
-    []
-  );
-
-  const clampedValue = Math.min(Math.max(internalValue, minimumValue), maximumValue);
-  const range = maximumValue - minimumValue || 1;
-  const ratio = (clampedValue - minimumValue) / range;
-
-  const scheduleOnChange = useCallback(
-    (nextValue) => {
-      pendingValueRef.current = nextValue;
-      if (frameRef.current) {
-        return;
-      }
-      frameRef.current = requestAnimationFrame(() => {
-        frameRef.current = null;
-        if (onValueChange) {
-          onValueChange(Number(pendingValueRef.current.toFixed(3)));
-        }
-      });
-    },
-    [onValueChange]
-  );
-
-  const applyLocationValue = useCallback(
-    (locationX, shouldComplete = false) => {
-      if (!trackWidth) return;
-      const normalized = Math.min(Math.max(locationX / trackWidth, 0), 1);
-      const nextValue = minimumValue + normalized * range;
-      setInternalValue(nextValue);
-      if (onValueChange) {
-        scheduleOnChange(nextValue);
-      }
-      if (shouldComplete && onSlidingComplete) {
-        onSlidingComplete(Number(nextValue.toFixed(3)));
-      }
-    },
-    [minimumValue, onSlidingComplete, onValueChange, range, scheduleOnChange, trackWidth]
-  );
-
-  return (
-    <View
-      style={[sliderStyles.track, { backgroundColor: trackColor }]}
-      onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-      onStartShouldSetResponder={() => true}
-      onResponderGrant={(event) => applyLocationValue(event.nativeEvent.locationX)}
-      onResponderMove={(event) => applyLocationValue(event.nativeEvent.locationX)}
-      onResponderRelease={(event) => applyLocationValue(event.nativeEvent.locationX, true)}
-      onResponderTerminationRequest={() => true}
-      onResponderTerminate={(event) => applyLocationValue(event.nativeEvent.locationX, true)}>
-      <View
-        style={[
-          sliderStyles.fill,
-          { backgroundColor: fillColor, width: trackWidth ? ratio * trackWidth : 0 },
-        ]}
-      />
-      <View
-        style={[
-          sliderStyles.thumb,
-          {
-            backgroundColor: thumbColor,
-            left: trackWidth ? ratio * trackWidth - 12 : 0,
-          },
-        ]}
-      />
-    </View>
-  );
-};
 
 const createStyles = (theme) =>
   StyleSheet.create({
@@ -987,9 +982,8 @@ const createStyles = (theme) =>
       columnGap: theme.spacing.xs,
       marginLeft: theme.spacing.md,
   },
-  categoryEmoji: {
-      fontSize: 20,
-      marginRight: 8,
+  categoryRow: {
+    gap: theme.spacing.sm,
   },
   detailValue: {
       ...theme.typography.body,
@@ -1146,6 +1140,10 @@ const createStyles = (theme) =>
       ...theme.typography.body,
       fontWeight: '600',
     },
+    slider: {
+      width: '100%',
+      height: 40,
+    },
     colorOptionsRow: {
       flexDirection: 'row',
       gap: theme.spacing.md,
@@ -1188,31 +1186,6 @@ const createStyles = (theme) =>
     editorActionText: {
       ...theme.typography.body,
       fontWeight: '600',
-    },
-  });
-
-const sliderStyles = StyleSheet.create({
-  track: {
-    width: '100%',
-    height: 20,
-    borderRadius: 999,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  fill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 999,
-  },
-  thumb: {
-    position: 'absolute',
-    top: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(0,0,0,0.1)',
   },
 });
+

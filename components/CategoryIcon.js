@@ -1,6 +1,8 @@
 import { memo, useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getIconComponent } from './CategoryIcons';
+import { getIconImage, hasIconImage } from '../assets/icons/iconMapping';
 
 const ICON_VARIANTS_LIGHT = [
   {
@@ -94,6 +96,7 @@ const CategoryIcon = memo(
   ({
     label = '',
     glyph = '🧁',
+    iconKey,
     size = 56,
     variantKey,
     isDark = false,
@@ -101,12 +104,44 @@ const CategoryIcon = memo(
     const clampedSize = clampSize(size);
     const variants = isDark ? ICON_VARIANTS_DARK : ICON_VARIANTS_LIGHT;
     const index = useMemo(() => {
-      const key = variantKey || label || glyph;
+      const key = variantKey || label || glyph || iconKey;
       return hashString(key) % variants.length;
-    }, [glyph, label, variantKey, variants.length]);
+    }, [glyph, label, variantKey, iconKey, variants.length]);
     const variant = variants[index];
     const glyphSize = clampedSize * 0.48;
 
+    // Priority: PNG Image > SVG Icon > Emoji
+    // 1. Check if PNG image exists for this iconKey
+    const iconImage = iconKey ? getIconImage(iconKey) : null;
+    const usePngIcon = !!iconImage;
+
+    // 2. Check if SVG icon exists
+    const IconComponent = iconKey ? getIconComponent(iconKey) : null;
+    const useSvgIcon = !!IconComponent && !usePngIcon;
+
+    // Render PNG image (highest priority)
+    if (usePngIcon) {
+      return (
+        <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
+          <Image
+            source={iconImage}
+            style={[styles.imageIcon, { width: clampedSize, height: clampedSize }]}
+            resizeMode="contain"
+          />
+        </View>
+      );
+    }
+
+    // Render SVG icon (second priority)
+    if (useSvgIcon) {
+      return (
+        <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
+          <IconComponent size={clampedSize} />
+        </View>
+      );
+    }
+
+    // For emoji fallback, use the original gradient style
     return (
       <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
         <View
@@ -188,6 +223,14 @@ const styles = StyleSheet.create({
   glyph: {
     textAlign: 'center',
     includeFontPadding: false,
+  },
+  svgContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageIcon: {
+    borderRadius: 999, // 圆形裁剪
+    overflow: 'hidden',
   },
 });
 

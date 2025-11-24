@@ -12,7 +12,7 @@ import {
   ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
@@ -20,10 +20,11 @@ import { calculateDaysDifference, sortEvents, formatDate } from '../../utils/dat
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import SearchBar from '../../components/SearchBar';
 import CategoryIcon from '../../components/CategoryIcon';
-import { getPastelCard, getEmojiForCategory, getCardVariants } from '../../utils/theme';
+import { getPastelCard, getEmojiForCategory, getIconKeyForCategory, getCardVariants } from '../../utils/theme';
 import { cancelEventNotifications } from '../../utils/notificationUtils';
 import { useTheme } from '../../hooks/useTheme';
 import { getCardOverlayColor, getEventContrast, getEventTextColor } from '../../utils/cardStyleUtils';
+import { getTabBarTotalHeight } from '../../constants/TabBarConstants';
 
 /**
  * Home (Dashboard) Screen
@@ -34,7 +35,9 @@ export default function HomeScreen() {
   const { events, categories, loadEvents, loadCategories, deleteEvent, getPinnedEvent, darkMode } =
     useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = getTabBarTotalHeight(insets.bottom);
+  const styles = useMemo(() => createStyles(theme, tabBarHeight), [theme, tabBarHeight]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [longPressEvent, setLongPressEvent] = useState(null);
@@ -198,6 +201,8 @@ export default function HomeScreen() {
     const isPast = days < 0;
     const absDay = Math.abs(days);
     const pastel = getPastelCard(item.id, darkMode);
+    // Use event's custom iconKey if available, otherwise use category's iconKey
+    const eventIconKey = item.iconKey || getIconKeyForCategory(categoryEmojiMap, item.categoryId);
     const emoji = getEmojiForCategory(categoryEmojiMap, item.categoryId);
 
     return (
@@ -206,7 +211,14 @@ export default function HomeScreen() {
         onPress={() => router.push(`/details/${item.id}`)}
         onLongPress={() => handleLongPress(item)}>
         <View style={styles.eventIconSlot}>
-          <CategoryIcon glyph={emoji} label={item.title} variantKey={item.categoryId} size={52} isDark={darkMode} />
+          <CategoryIcon 
+            glyph={emoji} 
+            iconKey={eventIconKey}
+            label={item.title} 
+            variantKey={item.id} 
+            size={52} 
+            isDark={darkMode} 
+          />
         </View>
         <View style={styles.eventContent}>
           <Text
@@ -235,7 +247,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>DaySprout</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Dayer</Text>
       </View>
 
       {renderPinnedSection()}
@@ -264,7 +276,7 @@ export default function HomeScreen() {
       />
 
       <AnimatedScaleTouchable
-        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card }]}
+        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card, bottom: tabBarHeight + 16 }]}
         onPress={() => router.push('/create-event')}>
         <Ionicons name="add" size={36} color={theme.colors.primary} />
       </AnimatedScaleTouchable>
@@ -314,7 +326,7 @@ export default function HomeScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, tabBarHeight) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -423,7 +435,7 @@ const createStyles = (theme) =>
     },
     listContent: {
       paddingHorizontal: theme.spacing.xl,
-      paddingBottom: 140,
+      paddingBottom: tabBarHeight + 16,
       paddingTop: theme.spacing.lg,
     },
     eventItem: {
@@ -480,7 +492,6 @@ const createStyles = (theme) =>
     },
     fab: {
       position: 'absolute',
-      bottom: 96,
       right: theme.spacing.lg,
       width: 77,
       height: 77,

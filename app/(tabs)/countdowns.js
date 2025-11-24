@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/useAppStore';
@@ -10,6 +10,7 @@ import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
 import CategoryIcon from '../../components/CategoryIcon';
 import { getCategoryGradient } from '../../utils/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { getTabBarTotalHeight } from '../../constants/TabBarConstants';
 
 /**
  * Countdowns Screen
@@ -20,7 +21,9 @@ export default function CountdownsScreen() {
   const { events, categories, loadEvents, loadCategories, deleteCategory, darkMode } =
     useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = getTabBarTotalHeight(insets.bottom);
+  const styles = useMemo(() => createStyles(theme, tabBarHeight), [theme, tabBarHeight]);
 
   useEffect(() => {
     loadEvents();
@@ -59,6 +62,7 @@ export default function CountdownsScreen() {
           <View style={styles.categoryIconSlot}>
             <CategoryIcon
               glyph={item.icon || '🧁'}
+              iconKey={item.iconKey}
               label={item.name}
               variantKey={item.id}
               size={58}
@@ -103,7 +107,7 @@ export default function CountdownsScreen() {
           style={[styles.headerTitle, { color: theme.colors.text }]}
           numberOfLines={1}
           ellipsizeMode="tail">
-          DaySprout
+          Dayer
         </Text>
         <AnimatedScaleTouchable
           style={[styles.addCategoryButton, { borderColor: theme.colors.primary }]}
@@ -129,7 +133,7 @@ export default function CountdownsScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, tabBarHeight) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -161,7 +165,7 @@ const createStyles = (theme) =>
     },
     listContent: {
       paddingHorizontal: theme.spacing.xl,
-      paddingBottom: 120,
+      paddingBottom: tabBarHeight + 16,
       paddingTop: theme.spacing.md,
     },
     categoryTouchable: {

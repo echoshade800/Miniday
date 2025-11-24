@@ -64,6 +64,9 @@ export function getNextOccurrence(baseDate, repeatRule) {
       case 'monthly':
         nextDate.setMonth(nextDate.getMonth() + 1);
         break;
+      case 'yearly':
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
       default:
         return baseDate;
     }
