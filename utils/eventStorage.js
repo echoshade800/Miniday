@@ -3,16 +3,36 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const EVENTS_KEY = 'MiniDays_events';
 const CATEGORIES_KEY = 'MiniDays_categories';
 
-// Default categories with premium SVG icons (transparent background, app theme colors)
+// Default categories with new icon system
 const DEFAULT_CATEGORIES = [
-  { id: '1', name: 'Life', icon: '✨', iconKey: 'life' },
-  { id: '2', name: 'Work', icon: '🎯', iconKey: 'work' },
-  { id: '3', name: 'Anniversary', icon: '🏆', iconKey: 'celebration' },
-  { id: '4', name: 'Love', icon: '💎', iconKey: 'love' },
-  { id: '5', name: 'Travel', icon: '✈️', iconKey: 'travel' },
-  { id: '6', name: 'Health', icon: '🌱', iconKey: 'fitness' },
-  { id: '7', name: 'Study', icon: '📚', iconKey: 'study' },
-  { id: '8', name: 'Birthday', icon: '🎂', iconKey: 'birthday' },
+  { id: '1', name: 'Life', iconKey: 'life', icon: '🌞' },
+  { id: '2', name: 'Work', iconKey: 'work', icon: '💼' },
+  { id: '3', name: 'Love', iconKey: 'love', icon: '❤️' },
+  { id: '4', name: 'Celebration', iconKey: 'celebration', icon: '🎉' },
+  { id: '5', name: 'Birthday', iconKey: 'birthday', icon: '🎂' },
+  { id: '6', name: 'Graduation', iconKey: 'graduation', icon: '🎓' },
+  { id: '7', name: 'Flight', iconKey: 'flight', icon: '✈️' },
+  { id: '8', name: 'Travel', iconKey: 'travel', icon: '🧳' },
+  { id: '9', name: 'Home', iconKey: 'home', icon: '🏡' },
+  { id: '10', name: 'Fitness', iconKey: 'fitness', icon: '🏋️' },
+  { id: '11', name: 'Study', iconKey: 'study', icon: '📚' },
+  { id: '12', name: 'Gaming', iconKey: 'game', icon: '🎮' },
+  { id: '13', name: 'Music', iconKey: 'music', icon: '🎧' },
+  { id: '14', name: 'Dining', iconKey: 'eating', icon: '🍽️' },
+  { id: '15', name: 'Pizza Night', iconKey: 'pizza', icon: '🍕' },
+  { id: '16', name: 'Coffee', iconKey: 'coffee', icon: '☕️' },
+  { id: '17', name: 'Restroom', iconKey: 'toilet', icon: '🚻' },
+  { id: '18', name: 'Moonlight', iconKey: 'moon', icon: '🌙' },
+  { id: '19', name: 'Walk', iconKey: 'walk', icon: '🚶' },
+  { id: '20', name: 'Picnic', iconKey: 'picnic', icon: '🧺' },
+  { id: '21', name: 'Thinking', iconKey: 'thinking', icon: '🤔' },
+  { id: '22', name: 'Art', iconKey: 'art', icon: '🎨' },
+  { id: '23', name: 'Phone Time', iconKey: 'phone', icon: '📱' },
+  { id: '24', name: 'Soccer', iconKey: 'soccer', icon: '⚽️' },
+  { id: '25', name: 'Basketball', iconKey: 'basketball', icon: '🏀' },
+  { id: '26', name: 'Archery', iconKey: 'archery', icon: '🎯' },
+  { id: '27', name: 'Swimming', iconKey: 'swimming', icon: '🏊' },
+  { id: '28', name: 'Flowers', iconKey: 'flower', icon: '🌸' },
 ];
 
 /**

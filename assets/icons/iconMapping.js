@@ -10,40 +10,42 @@ export const ICON_IMAGE_MAP = {
   work: require('./icon_work.png'),
   love: require('./icon_love.png'),
   celebration: require('./icon_celebration.png'),
-  birthday: require('./icon_celebration.png'),
+  birthday: require('./icon_birthday.png'),
   graduation: require('./icon_graduation.png'),
-  
-  // 交通与旅行
-  flight: require('./icon_trip.png'),
-  
-  // 生活场景
+  home: require('./icon_home.png'),
+
+  // 交通与出行
+  flight: require('./icon_flight.png'),
+  travel: require('./icon_travel.png'),
+
+  // 生活方式
   fitness: require('./icon_fitness.png'),
   study: require('./icon_study.png'),
   music: require('./icon_music.png'),
-  
-  // 饮食
-  eating: require('./icon_meal.png'),
-  pizza: require('./icon_pizza.png'),
-  coffee: require('./icon_breakfast.png'),
-  
-  // 娱乐
   game: require('./icon_game.png'),
   phone: require('./icon_phone.png'),
-  
-  // 运动
-  soccer: require('./icon_soccer.png'),
-  archery: require('./icon_target.png'),
-  swimming: require('./icon_swim.png'),
-  walk: require('./icon_walk.png'),
-  
-  // 户外活动
+  art: require('./icon_art.png'),
+  thinking: require('./icon_thinking.png'),
+
+  // 饮食
+  eating: require('./icon_eating.png'),
+  pizza: require('./icon_pizza.png'),
+  coffee: require('./icon_coffee.png'),
+
+  // 休闲活动
   moon: require('./icon_moon.png'),
   picnic: require('./icon_picnic.png'),
   flower: require('./icon_flower.png'),
-  
+  walk: require('./icon_walk.png'),
+
+  // 运动
+  soccer: require('./icon_soccer.png'),
+  basketball: require('./icon_basketball.png'),
+  archery: require('./icon_archery.png'),
+  swimming: require('./icon_swimming.png'),
+
   // 其他
-  thinking: require('./icon_think.png'),
-  art: require('./icon_paint.png'),
+  toilet: require('./icon_toilet.png'),
 };
 
 /**

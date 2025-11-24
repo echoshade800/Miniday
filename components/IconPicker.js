@@ -14,7 +14,7 @@ export default function IconPicker({ selectedIconKey, onSelectIcon, style }) {
 
   return (
     <View style={[styles.container, style]}>
-      {CATEGORY_ICON_METADATA.map(({ key, label, icon: IconComponent }) => (
+      {CATEGORY_ICON_METADATA.map(({ key, label, icon: IconComponent, accentColor }) => (
         <AnimatedScaleTouchable
           key={key}
           style={[
@@ -25,7 +25,11 @@ export default function IconPicker({ selectedIconKey, onSelectIcon, style }) {
           ]}
           onPress={() => onSelectIcon(key)}>
           <View style={styles.iconWrapper}>
-            <IconComponent size={56} />
+            <IconComponent
+              size={26}
+              color={selectedIconKey === key ? theme.colors.primary : accentColor}
+              strokeWidth={2.6}
+            />
           </View>
         </AnimatedScaleTouchable>
       ))}

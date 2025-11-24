@@ -1,197 +1,104 @@
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { getIconComponent } from './CategoryIcons';
-import { getIconImage, hasIconImage } from '../assets/icons/iconMapping';
-
-const ICON_VARIANTS_LIGHT = [
-  {
-    gradient: ['#FFF4F4', '#FFE2F4'],
-    stroke: 'rgba(255, 255, 255, 0.85)',
-    glow: 'rgba(255, 183, 213, 0.5)',
-    highlight: 'rgba(255, 255, 255, 0.75)',
-    glyphColor: '#4C3B48',
-  },
-  {
-    gradient: ['#F1F7FF', '#E0ECFF'],
-    stroke: 'rgba(255, 255, 255, 0.85)',
-    glow: 'rgba(164, 202, 255, 0.45)',
-    highlight: 'rgba(255, 255, 255, 0.8)',
-    glyphColor: '#1E2A3B',
-  },
-  {
-    gradient: ['#F0FFF8', '#DAF7E9'],
-    stroke: 'rgba(255, 255, 255, 0.85)',
-    glow: 'rgba(147, 231, 197, 0.4)',
-    highlight: 'rgba(255, 255, 255, 0.78)',
-    glyphColor: '#1F3A2C',
-  },
-  {
-    gradient: ['#FDF5E6', '#FFE5C7'],
-    stroke: 'rgba(255, 255, 255, 0.9)',
-    glow: 'rgba(255, 202, 138, 0.45)',
-    highlight: 'rgba(255, 255, 255, 0.75)',
-    glyphColor: '#4E3523',
-  },
-  {
-    gradient: ['#F4F0FF', '#E3DAFF'],
-    stroke: 'rgba(255, 255, 255, 0.85)',
-    glow: 'rgba(176, 154, 255, 0.45)',
-    highlight: 'rgba(255, 255, 255, 0.82)',
-    glyphColor: '#2F2642',
-  },
-];
-
-const ICON_VARIANTS_DARK = [
-  {
-    gradient: ['#3A2E4F', '#1F1A2F'],
-    stroke: 'rgba(255, 255, 255, 0.05)',
-    glow: 'rgba(157, 121, 255, 0.35)',
-    highlight: 'rgba(255, 255, 255, 0.15)',
-    glyphColor: '#F5F3FF',
-  },
-  {
-    gradient: ['#233445', '#111A24'],
-    stroke: 'rgba(255, 255, 255, 0.04)',
-    glow: 'rgba(128, 187, 255, 0.35)',
-    highlight: 'rgba(255, 255, 255, 0.1)',
-    glyphColor: '#F0F7FF',
-  },
-  {
-    gradient: ['#1F2F2A', '#0F1915'],
-    stroke: 'rgba(255, 255, 255, 0.04)',
-    glow: 'rgba(118, 214, 181, 0.28)',
-    highlight: 'rgba(255, 255, 255, 0.08)',
-    glyphColor: '#E8FFF4',
-  },
-  {
-    gradient: ['#3B2D1F', '#1C130C'],
-    stroke: 'rgba(255, 255, 255, 0.05)',
-    glow: 'rgba(255, 190, 130, 0.3)',
-    highlight: 'rgba(255, 255, 255, 0.08)',
-    glyphColor: '#FFF4EA',
-  },
-  {
-    gradient: ['#2E1E2D', '#190F1B'],
-    stroke: 'rgba(255, 255, 255, 0.05)',
-    glow: 'rgba(255, 143, 206, 0.28)',
-    highlight: 'rgba(255, 255, 255, 0.08)',
-    glyphColor: '#FFE9F5',
-  },
-];
+import { useTheme } from '../hooks/useTheme';
+import { getIconDefinition } from './CategoryIcons';
+import { getIconImage } from '../assets/icons/iconMapping';
 
 const clampSize = (size) => Math.max(36, Math.min(size, 72));
 
-const hashString = (value = '') => {
-  if (!value) return 0;
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
+const hexToRgb = (hex = '#2BA29A') => {
+  const normalized = hex.replace('#', '');
+  const value = normalized.length === 3
+    ? normalized.split('').map((char) => char + char).join('')
+    : normalized;
+  const int = parseInt(value, 16);
+  return {
+    r: (int >> 16) & 255,
+    g: (int >> 8) & 255,
+    b: int & 255,
+  };
 };
 
-const CategoryIcon = memo(
-  ({
-    label = '',
-    glyph = '🧁',
-    iconKey,
-    size = 56,
-    variantKey,
-    isDark = false,
-  }) => {
-    const clampedSize = clampSize(size);
-    const variants = isDark ? ICON_VARIANTS_DARK : ICON_VARIANTS_LIGHT;
-    const index = useMemo(() => {
-      const key = variantKey || label || glyph || iconKey;
-      return hashString(key) % variants.length;
-    }, [glyph, label, variantKey, iconKey, variants.length]);
-    const variant = variants[index];
-    const glyphSize = clampedSize * 0.48;
+const hexToRgba = (hex, alpha = 1) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
 
-    // Priority: PNG Image > SVG Icon > Emoji
-    // 1. Check if PNG image exists for this iconKey
-    const iconImage = iconKey ? getIconImage(iconKey) : null;
-    const usePngIcon = !!iconImage;
+const adjustColor = (hex, amount = 0) => {
+  if (!amount) {
+    return hex;
+  }
+  const { r, g, b } = hexToRgb(hex);
+  const target = amount < 0 ? 0 : 255;
+  const factor = Math.min(Math.abs(amount), 1);
+  const mix = (channel) => Math.round(channel + (target - channel) * factor);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+};
 
-    // 2. Check if SVG icon exists
-    const IconComponent = iconKey ? getIconComponent(iconKey) : null;
-    const useSvgIcon = !!IconComponent && !usePngIcon;
+const CategoryIcon = memo(({ glyph = '🧁', iconKey, size = 56, isDark = false }) => {
+  const theme = useTheme();
+  const clampedSize = clampSize(size);
+  const definition = iconKey ? getIconDefinition(iconKey) : null;
+  const IconComponent = definition?.component;
+  const accentColor = definition?.accentColor || theme.colors.primary;
+  const iconTint = adjustColor(accentColor, isDark ? 0.2 : 0);
+  const haloColor = hexToRgba(accentColor, isDark ? 0.22 : 0.12);
+  const iconImage = iconKey ? getIconImage(iconKey) : null;
 
-    // Render PNG image (highest priority)
-    if (usePngIcon) {
-      return (
-        <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
-          <Image
-            source={iconImage}
-            style={[styles.imageIcon, { width: clampedSize, height: clampedSize }]}
-            resizeMode="contain"
-          />
-        </View>
-      );
-    }
+  if (iconImage) {
+    return (
+      <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
+        <Image
+          source={iconImage}
+          style={[styles.image, { width: clampedSize, height: clampedSize }]}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
-    // Render SVG icon (second priority)
-    if (useSvgIcon) {
-      return (
-        <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
-          <IconComponent size={clampedSize} />
-        </View>
-      );
-    }
-
-    // For emoji fallback, use the original gradient style
+  if (IconComponent) {
     return (
       <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
         <View
           style={[
-            styles.glow,
-            {
-              backgroundColor: variant.glow,
-              shadowColor: variant.glow,
-              width: clampedSize * 0.82,
-              height: clampedSize * 0.82,
-              borderRadius: (clampedSize * 0.82) / 2,
-            },
-          ]}
-        />
-        <LinearGradient
-          colors={variant.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[
-            styles.gradient,
+            styles.badge,
             {
               width: clampedSize,
               height: clampedSize,
               borderRadius: clampedSize / 2,
-              borderColor: variant.stroke,
+              borderColor: iconTint,
+              backgroundColor: haloColor,
             },
           ]}>
-          <View
-            style={[
-              styles.highlight,
-              {
-                backgroundColor: variant.highlight,
-                width: clampedSize * 0.9,
-                height: clampedSize * 0.45,
-                borderRadius: clampedSize / 2,
-              },
-            ]}
+          <IconComponent
+            size={clampedSize * 0.62}
+            color={iconTint}
+            strokeWidth={2.6}
           />
-          <Text
-            style={[
-              styles.glyph,
-              { fontSize: glyphSize, color: variant.glyphColor || '#1F1F1F' },
-            ]}>
-            {glyph}
-          </Text>
-        </LinearGradient>
+        </View>
       </View>
     );
   }
-);
+
+  return (
+    <View style={[styles.wrapper, { width: clampedSize, height: clampedSize }]}>
+      <View
+        style={[
+          styles.badge,
+          {
+            width: clampedSize,
+            height: clampedSize,
+            borderRadius: clampedSize / 2,
+            borderColor: theme.colors.primary,
+            backgroundColor: hexToRgba(theme.colors.primary, 0.08),
+          },
+        ]}>
+        <Text style={[styles.glyph, { fontSize: clampedSize * 0.6 }]}>{glyph}</Text>
+      </View>
+    </View>
+  );
+});
 
 CategoryIcon.displayName = 'CategoryIcon';
 
@@ -202,35 +109,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  glow: {
-    position: 'absolute',
-    opacity: 0.7,
-    shadowOpacity: 0.65,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+  image: {
+    width: '100%',
+    height: '100%',
   },
-  gradient: {
-    borderWidth: 1.2,
+  badge: {
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  highlight: {
-    position: 'absolute',
-    top: 4,
-    opacity: 0.6,
   },
   glyph: {
     textAlign: 'center',
     includeFontPadding: false,
   },
-  svgContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageIcon: {
-    borderRadius: 999, // 圆形裁剪
-    overflow: 'hidden',
-  },
 });
-
