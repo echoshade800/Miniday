@@ -10,6 +10,7 @@ import {
   Platform,
   ActionSheetIOS,
   ImageBackground,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +38,10 @@ export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = getTabBarTotalHeight(insets.bottom);
-  const styles = useMemo(() => createStyles(theme, tabBarHeight), [theme, tabBarHeight]);
+  const screenWidth = Dimensions.get('window').width;
+  // Position button at the right edge of screen (in the red marked area)
+  const fabRight = 16; // Small margin from right edge
+  const styles = useMemo(() => createStyles(theme, tabBarHeight, fabRight), [theme, tabBarHeight, fabRight]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [longPressEvent, setLongPressEvent] = useState(null);
@@ -276,7 +280,7 @@ export default function HomeScreen() {
       />
 
       <AnimatedScaleTouchable
-        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card, bottom: tabBarHeight + 16 }]}
+        style={[styles.fab, { borderColor: theme.colors.primary, backgroundColor: theme.colors.card, bottom: 30, right: fabRight }]}
         onPress={() => router.push('/create-event')}>
         <Ionicons name="add" size={36} color={theme.colors.primary} />
       </AnimatedScaleTouchable>
@@ -492,7 +496,6 @@ const createStyles = (theme, tabBarHeight) =>
     },
     fab: {
       position: 'absolute',
-      right: theme.spacing.lg,
       width: 77,
       height: 77,
       borderRadius: 38.5,
