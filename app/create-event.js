@@ -21,9 +21,14 @@ import CategoryIcon from '../components/CategoryIcon';
 import IconPicker from '../components/IconPicker';
 import { CATEGORY_ICON_METADATA } from '../components/CategoryIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { scheduleEventNotification, cancelEventNotifications, requestNotificationPermissions } from '../utils/notificationUtils';
+import {
+  scheduleEventNotification,
+  cancelEventNotifications,
+  requestNotificationPermissions,
+} from '../utils/notificationUtils';
 import { useTheme } from '../hooks/useTheme';
 import { DEFAULT_BACKGROUND_CONTRAST, DEFAULT_COUNTER_TEXT_COLOR } from '../utils/cardStyleUtils';
+import { DEFAULT_CATEGORY_IDS } from '../utils/eventStorage';
 
 /**
  * Create/Edit Event Screen (Feature B)
@@ -44,12 +49,15 @@ import { DEFAULT_BACKGROUND_CONTRAST, DEFAULT_COUNTER_TEXT_COLOR } from '../util
  * - Implement notification scheduling
  */
 
+const DEFAULT_CATEGORY_FALLBACK = DEFAULT_CATEGORY_IDS[0] || '1';
+
 export default function CreateEventScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { events, categories, addEvent, updateEvent, darkMode } = useAppStore();
+  const { events, categories, addEvent, updateEvent, darkMode, deleteCategory } = useAppStore();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const defaultCategoryIdSet = useMemo(() => new Set(DEFAULT_CATEGORY_IDS), []);
 
   const isEditing = !!params.id;
   const editingEvent = isEditing ? events.find((e) => e.id === params.id) : null;
@@ -260,6 +268,32 @@ export default function CreateEventScreen() {
     setPendingReminderDate(reminderAt);
   };
 
+  const handleLongPressCategory = (category) => {
+    if (defaultCategoryIdSet.has(category.id)) {
+      Alert.alert('无法删除', '内置分类无法删除。');
+      return;
+    }
+
+    Alert.alert('删除分类', `确定删除「${category.name}」吗？`, [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteCategory(category.id);
+            if (categoryId === category.id) {
+              setCategoryId(DEFAULT_CATEGORY_FALLBACK);
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete category, please try again.');
+            console.error('Delete category error:', error);
+          }
+        },
+      },
+    ]);
+  };
+
   const renderCategoryPicker = () => (
     <View style={[styles.field, { backgroundColor: theme.colors.surface }]}>
       <Text style={[styles.label, { color: theme.colors.title }]}>Category</Text>
@@ -268,7 +302,8 @@ export default function CreateEventScreen() {
           <TouchableOpacity
             key={category.id}
             style={[styles.optionButton, categoryId === category.id && styles.optionButtonActive]}
-            onPress={() => setCategoryId(category.id)}>
+            onPress={() => setCategoryId(category.id)}
+            onLongPress={() => handleLongPressCategory(category)}>
             <View style={styles.categoryIconWrapper}>
               <CategoryIcon
                 glyph={category.icon || '🧁'}

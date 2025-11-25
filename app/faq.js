@@ -6,117 +6,78 @@ import { Ionicons } from '@expo/vector-icons';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
 import { useTheme } from '../hooks/useTheme';
 
-const FAQ_CONTENT = `1. How do I create a new event?
-
-Go to the main screen and tap the “+” button (or the add button at the bottom). Fill in the event name, date, category, and any reminder or repeat options.
-
-
-
-2. How do I edit an existing event?
-
-Open the event you want to change and tap the “Edit” button in the top-right corner.
-
-
-
-3. Why does the countdown number change when I tap it?
-
-You can tap the countdown number to switch between different views:
-
-
-
-Days
-
-
-
-Years / Months / Days
-
-
-
-Months / Days
-
-
-
-Weeks / Days
-
-Tap again to cycle back.
-
-
-
-4. Can I customize the event background?
-
-Yes. Open the event → tap “Customize” → choose an image from your gallery.
-
-You can also adjust contrast and text color visibility.
-
-
-
-5. How do I pin an event to the top?
-
-Open the event → enable the “Pinned” toggle.
-
-Only one event can be pinned at a time.
-
-
-
-6. How do reminders work?
-
-Enable “Reminder” when editing an event, then select the reminder date and time. You will receive a notification at the chosen time.
-
-
-
-7. What does ‘Repeat’ mean?
-
-Repeat allows an event to automatically recur:
-
-
-
-Daily – every day at the same time
-
-
-
-Weekly – same weekday every week
-
-
-
-Monthly – same day every month
-
-
-
-None – no repetition
-
-
-
-8. Why does the countdown text size change?
-
-The app automatically adjusts text size to make sure long formats (such as “18 years 4 months 22 days”) fit properly on your screen.
-
-
-
-9. How do I delete an event?
-
-Open the event → scroll to the bottom → tap “Delete Event”.
-
-Or long-press an event card on the main list and choose “Delete”.
-
-
-
-10. How do I switch to dark mode?
-
-Go to the Profile tab and toggle “Dark Theme”.
-
-All screens will follow the same theme instantly.
-
-
-
-11. Does this app require a login?
-
-No. All features are available without creating an account.
-
-
-
-12. Is my data stored online?
-
-Your events are saved locally on your device. They are not uploaded to any server.`;
+const FAQ_ITEMS = [
+  {
+    question: 'How do I create a new event?',
+    paragraphs: [
+      'Go to the main screen and tap the “+” button (or the add button at the bottom).',
+      'Fill in the event name, date, category, and any reminder or repeat options.',
+    ],
+  },
+  {
+    question: 'How do I edit an existing event?',
+    paragraphs: ['Open the event you want to change and tap the “Edit” button in the top-right corner.'],
+  },
+  {
+    question: 'Why does the countdown number change when I tap it?',
+    paragraphs: ['You can tap the countdown number to switch between different views:'],
+    list: ['Days', 'Years / Months / Days', 'Months / Days', 'Weeks / Days'],
+    footer: 'Tap again to cycle back.',
+  },
+  {
+    question: 'Can I customize the event background?',
+    paragraphs: [
+      'Open the event, tap “Customize”, then choose an image from your gallery.',
+      'Adjust contrast and text color visibility if needed.',
+    ],
+  },
+  {
+    question: 'How do I pin an event to the top?',
+    paragraphs: ['Open the event and enable the “Pinned” toggle.', 'Only one event can be pinned at a time.'],
+  },
+  {
+    question: 'How do reminders work?',
+    paragraphs: [
+      'Enable “Reminder” when editing an event and select the reminder date and time.',
+      'You will receive a notification at the chosen time.',
+    ],
+  },
+  {
+    question: 'What does “Repeat” mean?',
+    paragraphs: ['Repeat allows an event to automatically recur:'],
+    list: [
+      'Daily — every day at the same time',
+      'Weekly — same weekday every week',
+      'Monthly — same day every month',
+      'None — no repetition',
+    ],
+  },
+  {
+    question: 'Why does the countdown text size change?',
+    paragraphs: [
+      'The app automatically adjusts text size to make sure long formats (such as “18 years 4 months 22 days”) fit properly on your screen.',
+    ],
+  },
+  {
+    question: 'How do I delete an event?',
+    paragraphs: [
+      'Open the event, scroll to the bottom, and tap “Delete Event”.',
+      'You can also long-press an event card on the main list and choose “Delete”.',
+    ],
+  },
+  {
+    question: 'How do I switch to dark mode?',
+    paragraphs: ['Go to the Profile tab and toggle “Dark Theme”.', 'All screens will follow the same theme instantly.'],
+  },
+  {
+    question: 'Does this app require a login?',
+    paragraphs: ['No. All features are available without creating an account.'],
+  },
+  {
+    question: 'Is my data stored online?',
+    paragraphs: ['Your events are saved locally on your device and are not uploaded to any server.'],
+  },
+];
 
 export default function FAQScreen() {
   const router = useRouter();
@@ -139,7 +100,30 @@ export default function FAQScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={[styles.contentCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <Text style={[styles.faqText, { color: theme.colors.text }]}>{FAQ_CONTENT}</Text>
+          {FAQ_ITEMS.map((item, index) => {
+            const isLast = index === FAQ_ITEMS.length - 1;
+            return (
+              <View key={item.question} style={[styles.faqItem, isLast && styles.faqItemLast]}>
+                <Text style={[styles.question, { color: theme.colors.title }]}>{item.question}</Text>
+                {item.paragraphs.map((paragraph, paragraphIndex) => (
+                  <Text key={`${item.question}-p-${paragraphIndex}`} style={[styles.answer, { color: theme.colors.text }]}>
+                    {paragraph}
+                  </Text>
+                ))}
+                {item.list && (
+                  <View style={styles.list}>
+                    {item.list.map((entry) => (
+                      <View key={`${item.question}-${entry}`} style={styles.listRow}>
+                        <Text style={[styles.bullet, { color: theme.colors.primary }]}>•</Text>
+                        <Text style={[styles.listText, { color: theme.colors.text }]}>{entry}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {item.footer && <Text style={[styles.answer, { color: theme.colors.text }]}>{item.footer}</Text>}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -182,10 +166,38 @@ const createStyles = (theme) =>
       borderWidth: 1,
       ...theme.shadow.soft,
     },
-    faqText: {
+    faqItem: {
+      marginBottom: theme.spacing.lg,
+    },
+    faqItemLast: {
+      marginBottom: 0,
+    },
+    question: {
+      ...theme.typography.body,
+      fontWeight: '700',
+      marginBottom: theme.spacing.xs,
+    },
+    answer: {
       ...theme.typography.bodySmall,
       lineHeight: 22,
-      textAlign: 'left',
+      marginBottom: theme.spacing.xs,
+    },
+    list: {
+      marginBottom: theme.spacing.xs,
+    },
+    listRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: theme.spacing.xs,
+    },
+    bullet: {
+      marginRight: theme.spacing.sm,
+      fontSize: 12,
+      lineHeight: 22,
+    },
+    listText: {
+      ...theme.typography.bodySmall,
+      flex: 1,
+      lineHeight: 22,
     },
   });
-

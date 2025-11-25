@@ -4,7 +4,7 @@ const EVENTS_KEY = 'MiniDays_events';
 const CATEGORIES_KEY = 'MiniDays_categories';
 
 // Default categories with new icon system
-const DEFAULT_CATEGORIES = [
+export const DEFAULT_CATEGORIES = [
   { id: '1', name: 'Life', iconKey: 'life', icon: '🌞' },
   { id: '2', name: 'Work', iconKey: 'work', icon: '💼' },
   { id: '3', name: 'Love', iconKey: 'love', icon: '❤️' },
@@ -34,6 +34,8 @@ const DEFAULT_CATEGORIES = [
   { id: '27', name: 'Swimming', iconKey: 'swimming', icon: '🏊' },
   { id: '28', name: 'Flowers', iconKey: 'flower', icon: '🌸' },
 ];
+
+export const DEFAULT_CATEGORY_IDS = DEFAULT_CATEGORIES.map((category) => category.id);
 
 /**
  * Event storage utility for managing countdown events

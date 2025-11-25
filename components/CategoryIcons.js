@@ -60,6 +60,10 @@ function IconWrapper({ IconComponent, size = 24, color = "#000", strokeWidth = 2
 // Icon definitions - focused on "important days" with realistic icons
 export const ICON_DEFINITIONS = {
   // Growth category
+  life: {
+    component: (props) => <IconWrapper IconComponent={Sun} {...props} />,
+    accentColor: "#FFA726",
+  },
   work: {
     component: (props) => <IconWrapper IconComponent={Briefcase} {...props} />,
     accentColor: "#4CAF50",
@@ -73,6 +77,10 @@ export const ICON_DEFINITIONS = {
     accentColor: "#FFD54F",
   },
   // Emotion category
+  anniversary: {
+    component: (props) => <IconWrapper IconComponent={Gift} {...props} />,
+    accentColor: "#FF8A65",
+  },
   love: {
     component: (props) => <IconWrapper IconComponent={Heart} {...props} />,
     accentColor: "#E53935",
@@ -263,7 +271,7 @@ export const ICON_GROUPS = [
   {
     key: "emotion",
     label: "Emotion",
-    iconKeys: ["love", "birthday", "family"],
+    iconKeys: ["love", "anniversary", "birthday", "family"],
   },
   {
     key: "sport",
@@ -279,11 +287,13 @@ export const ICON_GROUPS = [
 
 export const ICON_LABELS = {
   // Growth category
+  life: "Life",
   work: "Work",
   study: "Study",
   achievement: "Goal",
   // Emotion category
   love: "Love",
+  anniversary: "Anniversary",
   birthday: "Birthday",
   family: "Family",
   // Sport category
