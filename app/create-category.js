@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
@@ -27,12 +27,12 @@ import { useTheme } from '../hooks/useTheme';
  */
 
 export default function CreateCategoryScreen() {
-  const router = useRouter();
+  const navigation = useNavigation();
   const { addCategory } = useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme || {}), [theme]);
   const [name, setName] = useState('');
-  const [selectedIconKey, setSelectedIconKey] = useState(CATEGORY_ICON_METADATA[0].key);
+  const [selectedIconKey, setSelectedIconKey] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -51,7 +51,7 @@ export default function CreateCategoryScreen() {
         icon: '🌟',
       });
 
-      router.back();
+      navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to create category. Please try again.');
       console.error('Create category error:', error);
@@ -63,7 +63,7 @@ export default function CreateCategoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
+        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
         <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">

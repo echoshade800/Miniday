@@ -1,3 +1,17 @@
+// 尝试导入 react-native-image-colors，支持多种导出方式
+let getColors;
+try {
+  const imageColorsModule = require('react-native-image-colors');
+  // 支持命名导出、默认导出或对象方法
+  getColors = imageColorsModule.getColors || 
+              imageColorsModule.default?.getColors || 
+              imageColorsModule.default ||
+              (imageColorsModule.default && typeof imageColorsModule.default === 'function' ? imageColorsModule.default : null);
+} catch (e) {
+  // 如果导入失败，getColors 保持为 undefined，会在函数中处理
+  console.warn('react-native-image-colors not available:', e.message);
+}
+
 export const DEFAULT_COUNTER_TEXT_COLOR = '#000000';
 export const DEFAULT_BACKGROUND_CONTRAST = 0.35;
 export const TEXT_COLOR_OPTIONS = ['#000000', '#FFFFFF'];
@@ -38,8 +52,10 @@ export const getCardOverlayColor = (textColor, contrast) => {
  */
 export const detectImageTextColor = async (imageUri) => {
   try {
-    // 动态导入 react-native-image-colors，避免在非 React Native 环境中出错
-    const { getColors } = await import('react-native-image-colors');
+    if (!getColors || typeof getColors !== 'function') {
+      console.warn('getColors is not available from react-native-image-colors');
+      return DEFAULT_COUNTER_TEXT_COLOR;
+    }
     
     const colors = await getColors(imageUri, {
       fallback: '#808080', // 默认灰色
