@@ -4,6 +4,8 @@
     "strict": true,
     "allowJs": true,
     "checkJs": false,
+    "jsx": "react-native",
+    "noEmit": true,
     "paths": {
       "@/*": ["./*"]
     }
