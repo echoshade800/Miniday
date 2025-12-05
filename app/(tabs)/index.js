@@ -201,51 +201,70 @@ export default function HomeScreen() {
   };
 
   const renderEventItem = ({ item }) => {
-    const days = calculateDaysDifference(item.targetDate);
-    const isPast = days < 0;
-    const absDay = Math.abs(days);
-    const pastel = getPastelCard(item.id, darkMode);
-    // Use event's custom iconKey if available, otherwise use category's iconKey
-    const eventIconKey = item.iconKey || getIconKeyForCategory(categoryEmojiMap, item.categoryId);
-    const emoji = getEmojiForCategory(categoryEmojiMap, item.categoryId);
+    try {
+      const days = calculateDaysDifference(item.targetDate);
+      const isPast = days < 0;
+      const absDay = Math.abs(days);
+      const pastel = getPastelCard(item.id, darkMode);
+      // Use event's custom iconKey if available, otherwise use category's iconKey
+      const eventIconKey = item.iconKey || getIconKeyForCategory(categoryEmojiMap, item.categoryId);
+      const emoji = getEmojiForCategory(categoryEmojiMap, item.categoryId);
 
-    return (
-      <AnimatedScaleTouchable
-        style={[styles.eventItem, { backgroundColor: pastel.backgroundColor }]}
-        onPress={() => router.push(`/details/${item.id}`)}
-        onLongPress={() => handleLongPress(item)}>
-        <View style={styles.eventIconSlot}>
-          <CategoryIcon 
-            glyph={emoji} 
-            iconKey={eventIconKey}
-            label={item.title} 
-            variantKey={item.id} 
-            size={52} 
-            isDark={darkMode} 
-          />
-        </View>
-        <View style={styles.eventContent}>
-          <Text
-            style={[styles.eventTitle, { color: theme.colors.text }]}
-            numberOfLines={1}
-            ellipsizeMode="tail">
-            {item.title}
+      return (
+        <AnimatedScaleTouchable
+          style={[styles.eventItem, { backgroundColor: pastel.backgroundColor }]}
+          onPress={() => {
+            try {
+              router.push(`/details/${item.id}`);
+            } catch (navError) {
+              console.error('Navigation error:', navError);
+              // 如果导航失败，至少不会崩溃
+            }
+          }}
+          onLongPress={() => handleLongPress(item)}>
+          <View style={styles.eventIconSlot}>
+            <CategoryIcon 
+              glyph={emoji} 
+              iconKey={eventIconKey}
+              label={item.title} 
+              variantKey={item.id} 
+              size={52} 
+              isDark={darkMode} 
+            />
+          </View>
+          <View style={styles.eventContent}>
+            <Text
+              style={[styles.eventTitle, { color: theme.colors.text }]}
+              numberOfLines={1}
+              ellipsizeMode="tail">
+              {item.title}
+            </Text>
+            <Text style={[styles.eventDate, { color: theme.colors.textMuted }]} numberOfLines={1} ellipsizeMode="tail">
+              {new Date(item.targetDate).toLocaleDateString()}
+            </Text>
+          </View>
+          <View style={[styles.badge, isPast ? styles.pastBadge : styles.futureBadge]}>
+            <Text
+              style={[
+                styles.badgeText,
+                { color: isPast ? theme.colors.body : theme.colors.primaryDark || theme.colors.primary },
+              ]}>
+              {isPast ? `${absDay} days ago` : `${absDay} days left`}
+            </Text>
+          </View>
+        </AnimatedScaleTouchable>
+      );
+    } catch (error) {
+      // 如果渲染事件项时出错，返回一个安全的占位符，而不是崩溃
+      console.error('Error rendering event item:', error, item);
+      return (
+        <View style={[styles.eventItem, { backgroundColor: theme.colors.card }]}>
+          <Text style={[styles.eventTitle, { color: theme.colors.text }]}>
+            {item?.title || 'Unknown Event'}
           </Text>
-          <Text style={[styles.eventDate, { color: theme.colors.textMuted }]} numberOfLines={1} ellipsizeMode="tail">
-            {new Date(item.targetDate).toLocaleDateString()}
-          </Text>
         </View>
-        <View style={[styles.badge, isPast ? styles.pastBadge : styles.futureBadge]}>
-          <Text
-            style={[
-              styles.badgeText,
-              { color: isPast ? theme.colors.body : theme.colors.primaryDark || theme.colors.primary },
-            ]}>
-            {isPast ? `${absDay} days ago` : `${absDay} days left`}
-          </Text>
-        </View>
-      </AnimatedScaleTouchable>
-    );
+      );
+    }
   };
 
   return (

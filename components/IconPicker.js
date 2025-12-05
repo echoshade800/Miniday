@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ICON_DEFINITIONS, ICON_GROUPS, CUSTOM_ICON_KEYS, ICON_LABELS } from './CategoryIcons';
 import AnimatedScaleTouchable from './AnimatedScaleTouchable';
@@ -57,16 +57,19 @@ export default function IconPicker({ selectedIconKey, onSelectIcon, style }) {
       
       {/* Custom Icons Section */}
       <View style={styles.groupSection}>
-        <AnimatedScaleTouchable
+        <TouchableOpacity
           style={styles.customHeader}
-          onPress={() => setShowCustomIcons(!showCustomIcons)}>
+          activeOpacity={0.7}
+          onPress={() => {
+            setShowCustomIcons(!showCustomIcons);
+          }}>
           <Text style={styles.groupLabel}>Custom</Text>
           <Ionicons
             name={showCustomIcons ? 'chevron-up' : 'chevron-down'}
             size={20}
             color={theme.colors.body}
           />
-        </AnimatedScaleTouchable>
+        </TouchableOpacity>
         
         {showCustomIcons && (
           <View style={styles.groupGrid}>

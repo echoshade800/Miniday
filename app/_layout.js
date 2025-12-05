@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '../hooks/useFrameworkReady';
 import StorageUtils from '../utils/StorageUtils';
 import { useAppStore } from '../store/useAppStore';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 /**
  * Root Layout
@@ -49,7 +50,7 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <>
+    <ErrorBoundary>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
@@ -61,6 +62,6 @@ export default function RootLayout() {
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
-    </>
+    </ErrorBoundary>
   );
 }
