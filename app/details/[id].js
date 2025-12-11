@@ -127,8 +127,10 @@ export default function DetailsScreen() {
   const [displayMode, setDisplayMode] = useState('days');
   const [backgroundEditorVisible, setBackgroundEditorVisible] = useState(false);
   const [ViewShotComponent, setViewShotComponent] = useState(null);
-  const [viewShotAvailable, setViewShotAvailable] = useState(true);
+  const [viewShotAvailable, setViewShotAvailable] = useState(false); // Default to false, load on demand
+  const [viewShotLoading, setViewShotLoading] = useState(false);
   const shareViewRef = useRef(null);
+  const shareViewContainerRef = useRef(null);
 
   useEffect(() => {
     const foundEvent = events.find((e) => e.id === params.id);
@@ -145,45 +147,84 @@ export default function DetailsScreen() {
     }
   }, [params.id, events, categories]);
 
-  // Lazy-load react-native-view-shot to avoid crashes on platforms/arches where it's unsupported
-  useEffect(() => {
-    // Use a timeout to defer loading, ensuring component is mounted first
-    const loadViewShot = setTimeout(() => {
-      try {
-        // Check if module exists before requiring
-        if (typeof require !== 'undefined' && require.resolve) {
-          try {
-            require.resolve('react-native-view-shot');
-          } catch (resolveError) {
-            // Module not found, skip loading
-            console.warn('ViewShot module not found, share/save image disabled');
-            setViewShotAvailable(false);
-            return;
-          }
+  // Load ViewShot on demand when user tries to share
+  // This function is called only when user clicks share button, not on component mount
+  const loadViewShotOnDemand = useCallback(async () => {
+    // If already loaded and available, return immediately
+    if (viewShotAvailable && ViewShotComponent) {
+      return true;
+    }
+
+    // If currently loading, wait a bit and check again
+    if (viewShotLoading) {
+      // Wait up to 1 second for loading to complete
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        if (viewShotAvailable && ViewShotComponent) {
+          return true;
         }
-        
-        // eslint-disable-next-line global-require
-        const mod = require('react-native-view-shot');
-        const Comp = mod?.default || mod;
-        
-        // Additional safety check: ensure it's a valid component
-        if (Comp && typeof Comp === 'function') {
-          setViewShotComponent(() => Comp);
-          setViewShotAvailable(true);
-        } else {
-          console.warn('ViewShot component invalid, share/save image disabled');
-          setViewShotAvailable(false);
+        if (!viewShotLoading) {
+          break; // Loading finished (success or failure)
         }
-      } catch (error) {
-        // Catch any error during require or initialization
-        console.warn('ViewShot unavailable, share/save image disabled:', error?.message || error);
-        setViewShotAvailable(false);
-        setViewShotComponent(null);
       }
-    }, 100); // Small delay to ensure component is stable
+      return viewShotAvailable && ViewShotComponent;
+    }
+
+    // Start loading
+    setViewShotLoading(true);
     
-    return () => clearTimeout(loadViewShot);
-  }, []);
+    try {
+      // Use a promise-based approach to safely check module availability
+      const loaded = await new Promise((resolve) => {
+        // Use setTimeout to defer loading to next tick, avoiding blocking
+        setTimeout(() => {
+          try {
+            // Check if module exists before requiring
+            if (typeof require === 'undefined' || !require.resolve) {
+              throw new Error('require is not available');
+            }
+
+            // Try to resolve the module first
+            try {
+              require.resolve('react-native-view-shot');
+            } catch (resolveError) {
+              // Module not found, skip loading
+              throw new Error('ViewShot module not found');
+            }
+            
+            // eslint-disable-next-line global-require
+            const mod = require('react-native-view-shot');
+            const Comp = mod?.default || mod;
+            
+            // Additional safety check: ensure it's a valid component
+            if (Comp && typeof Comp === 'function') {
+              setViewShotComponent(() => Comp);
+              setViewShotAvailable(true);
+              setViewShotLoading(false);
+              resolve(true);
+            } else {
+              throw new Error('ViewShot component invalid');
+            }
+          } catch (error) {
+            // Catch any error during require or initialization
+            console.warn('ViewShot unavailable, share/save image disabled:', error?.message || error);
+            setViewShotAvailable(false);
+            setViewShotComponent(null);
+            setViewShotLoading(false);
+            resolve(false);
+          }
+        }, 0);
+      });
+
+      return loaded;
+    } catch (error) {
+      console.warn('Error loading ViewShot:', error?.message || error);
+      setViewShotAvailable(false);
+      setViewShotComponent(null);
+      setViewShotLoading(false);
+      return false;
+    }
+  }, [viewShotAvailable, viewShotLoading, ViewShotComponent]);
 
   const handleEdit = () => {
     router.push({
@@ -238,14 +279,26 @@ export default function DetailsScreen() {
   };
 
   const captureShareImage = async () => {
-    // Double-check availability before proceeding
-    if (!viewShotAvailable || !ViewShotComponent) {
+    // Try to load ViewShot on demand if not already loaded
+    const loaded = await loadViewShotOnDemand();
+    
+    if (!loaded) {
       Alert.alert('Not Supported', 'Share image is unavailable on this build.');
       return null;
     }
 
+    // Wait for component to be rendered and ready
+    // Give React time to render the ViewShot component after state update
+    let retries = 0;
+    const maxRetries = 20; // Wait up to 2 seconds (20 * 100ms)
+    
+    while (!shareViewRef.current && retries < maxRetries) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      retries++;
+    }
+
     if (!shareViewRef.current) {
-      Alert.alert('Error', 'Unable to generate share image');
+      Alert.alert('Error', 'Unable to generate share image. Please try again.');
       return null;
     }
 
@@ -580,9 +633,10 @@ export default function DetailsScreen() {
 
       </ScrollView>
 
-      {/* Hidden view for sharing - captures the event card (only if ViewShot is available) */}
+      {/* Hidden view for sharing - captures the event card (only if ViewShot is available and loaded) */}
+      {/* This view is only rendered when ViewShot is successfully loaded on demand */}
       {viewShotAvailable && ViewShotComponent && typeof ViewShotComponent === 'function' ? (
-        <View style={styles.hiddenShareView} pointerEvents="none">
+        <View style={styles.hiddenShareView} pointerEvents="none" ref={shareViewContainerRef}>
           <ViewShotComponent ref={shareViewRef} options={{ format: 'png', quality: 1.0 }}>
             <View style={styles.shareCardContainer}>
               {hasCustomBackground ? (
