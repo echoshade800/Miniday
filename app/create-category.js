@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../store/useAppStore';
 import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
@@ -30,7 +30,8 @@ export default function CreateCategoryScreen() {
   const navigation = useNavigation();
   const { addCategory } = useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme || {}), [theme]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme || {}, insets.top), [theme, insets.top]);
   const [name, setName] = useState('');
   const [selectedIconKey, setSelectedIconKey] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -63,7 +64,10 @@ export default function CreateCategoryScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => navigation.goBack()}>
+        <AnimatedScaleTouchable 
+          style={styles.headerAction} 
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
         <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
@@ -114,7 +118,7 @@ export default function CreateCategoryScreen() {
   );
 }
 
-const createStyles = (theme) =>
+const createStyles = (theme, topInset) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -125,7 +129,8 @@ const createStyles = (theme) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingTop: Math.max(16, topInset + 8),
+      paddingBottom: 16,
       backgroundColor: theme.colors.surface,
     },
     headerTitle: {

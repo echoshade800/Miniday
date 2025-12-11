@@ -12,13 +12,13 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import Slider from '@react-native-community/slider';
+// Slider will be loaded on demand to avoid crashes in shell app
 import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, formatDate } from '../../utils/dateUtils';
 import AnimatedScaleTouchable from '../../components/AnimatedScaleTouchable';
@@ -120,7 +120,8 @@ export default function DetailsScreen() {
   const params = useLocalSearchParams();
   const { events, categories, deleteEvent, updateEvent, darkMode } = useAppStore();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => createStyles(theme, insets.top), [theme, insets.top]);
   const [event, setEvent] = useState(null);
   const [category, setCategory] = useState(null);
   const [countdownMode, setCountdownMode] = useState('forward'); // 'forward' or 'backward'
@@ -472,7 +473,10 @@ export default function DetailsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <AnimatedScaleTouchable style={styles.headerAction} onPress={() => router.back()}>
+        <AnimatedScaleTouchable 
+          style={styles.headerAction} 
+          onPress={() => router.back()}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.title} />
         </AnimatedScaleTouchable>
         <Text style={[styles.headerTitle, { color: theme.colors.title }]} numberOfLines={1} ellipsizeMode="tail">
@@ -699,11 +703,15 @@ const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
   onUpdate,
   updateEvent,
 }) {
+  const insets = useSafeAreaInsets();
   const [editorBackgroundImage, setEditorBackgroundImage] = useState(null);
   const [editorContrast, setEditorContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
   const [editorTextColor, setEditorTextColor] = useState(DEFAULT_COUNTER_TEXT_COLOR);
   const [savingBackground, setSavingBackground] = useState(false);
   const [previewContrast, setPreviewContrast] = useState(DEFAULT_BACKGROUND_CONTRAST);
+  const [SliderComponent, setSliderComponent] = useState(null);
+  const [sliderAvailable, setSliderAvailable] = useState(false);
+  const [sliderLoading, setSliderLoading] = useState(false);
 
   // 初始化编辑器状态（仅在 Modal 打开时）
   useEffect(() => {
@@ -715,6 +723,56 @@ const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
       setEditorTextColor(event.counterTextColor ?? DEFAULT_COUNTER_TEXT_COLOR);
     }
   }, [visible, event]);
+
+  // Load Slider component on demand when modal opens
+  useEffect(() => {
+    if (!visible) return;
+
+    // If already loaded or currently loading, return
+    if (sliderAvailable && SliderComponent) return;
+    if (sliderLoading) return;
+
+    setSliderLoading(true);
+
+    // Use setTimeout to defer loading to next tick
+    const loadSlider = setTimeout(() => {
+      try {
+        // Check if module exists before requiring
+        if (typeof require === 'undefined' || !require.resolve) {
+          throw new Error('require is not available');
+        }
+
+        // Try to resolve the module first
+        try {
+          require.resolve('@react-native-community/slider');
+        } catch (resolveError) {
+          // Module not found, skip loading
+          throw new Error('Slider module not found');
+        }
+
+        // eslint-disable-next-line global-require
+        const mod = require('@react-native-community/slider');
+        const Comp = mod?.default || mod;
+
+        // Additional safety check: ensure it's a valid component
+        if (Comp && typeof Comp === 'function') {
+          setSliderComponent(() => Comp);
+          setSliderAvailable(true);
+        } else {
+          throw new Error('Slider component invalid');
+        }
+      } catch (error) {
+        // Catch any error during require or initialization
+        console.warn('Slider unavailable, contrast adjustment disabled:', error?.message || error);
+        setSliderAvailable(false);
+        setSliderComponent(null);
+      } finally {
+        setSliderLoading(false);
+      }
+    }, 0);
+
+    return () => clearTimeout(loadSlider);
+  }, [visible, sliderAvailable, SliderComponent, sliderLoading]);
 
   const handlePickImage = useCallback(async () => {
     try {
@@ -822,8 +880,16 @@ const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface }]}>
-          <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
+        <View style={[styles.backgroundEditor, { backgroundColor: theme.colors.surface, paddingTop: Math.max(theme.spacing.xl, insets.top + theme.spacing.md) }]}>
+          <View style={styles.modalHeader}>
+            <Text style={[styles.modalTitle, { color: theme.colors.title }]}>Customize Background</Text>
+            <AnimatedScaleTouchable
+              style={styles.modalCloseButton}
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close" size={24} color={theme.colors.title} />
+            </AnimatedScaleTouchable>
+          </View>
           <BackgroundPreview
             imageUri={editorBackgroundImage}
             contrast={previewContrast}
@@ -846,18 +912,54 @@ const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
             <Text style={[styles.editorLabel, { color: theme.colors.title }]}>
               Contrast ({Math.round((previewContrast / 0.85) * 100)}%)
             </Text>
-            <Slider
-              style={styles.slider}
-              value={previewContrast}
-              minimumValue={0}
-              maximumValue={0.85}
-              step={0.01}
-              onValueChange={handlePreviewContrastChange}
-              onSlidingComplete={handlePreviewContrastComplete}
-              minimumTrackTintColor={sliderFillColor}
-              maximumTrackTintColor={sliderTrackColor}
-              thumbTintColor={sliderThumbColor}
-            />
+            {sliderAvailable && SliderComponent && typeof SliderComponent === 'function' ? (
+              <SliderComponent
+                style={styles.slider}
+                value={previewContrast}
+                minimumValue={0}
+                maximumValue={0.85}
+                step={0.01}
+                onValueChange={handlePreviewContrastChange}
+                onSlidingComplete={handlePreviewContrastComplete}
+                minimumTrackTintColor={sliderFillColor}
+                maximumTrackTintColor={sliderTrackColor}
+                thumbTintColor={sliderThumbColor}
+              />
+            ) : (
+              // Fallback: Use buttons to adjust contrast when Slider is unavailable
+              <View style={styles.contrastFallback}>
+                <View style={styles.contrastButtonsRow}>
+                  <TouchableOpacity
+                    style={[styles.contrastButton, { borderColor: theme.colors.primary }]}
+                    onPress={() => {
+                      const newValue = Math.max(0, previewContrast - 0.1);
+                      handlePreviewContrastChange(newValue);
+                      handlePreviewContrastComplete(newValue);
+                    }}
+                    disabled={previewContrast <= 0}>
+                    <Ionicons name="remove" size={20} color={previewContrast <= 0 ? theme.colors.textMuted : theme.colors.primary} />
+                  </TouchableOpacity>
+                  <View style={[styles.contrastValueDisplay, { backgroundColor: theme.colors.surfaceAlt }]}>
+                    <Text style={[styles.contrastValueText, { color: theme.colors.title }]}>
+                      {Math.round((previewContrast / 0.85) * 100)}%
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.contrastButton, { borderColor: theme.colors.primary }]}
+                    onPress={() => {
+                      const newValue = Math.min(0.85, previewContrast + 0.1);
+                      handlePreviewContrastChange(newValue);
+                      handlePreviewContrastComplete(newValue);
+                    }}
+                    disabled={previewContrast >= 0.85}>
+                    <Ionicons name="add" size={20} color={previewContrast >= 0.85 ? theme.colors.textMuted : theme.colors.primary} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.contrastHint, { color: theme.colors.textMuted }]}>
+                  Use buttons to adjust contrast
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.editorSection}>
@@ -902,7 +1004,8 @@ const BackgroundEditorModal = React.memo(function BackgroundEditorModal({
           <View style={styles.editorFooter}>
             <AnimatedScaleTouchable
               style={[styles.editorActionButton, { borderColor: theme.colors.divider }]}
-              onPress={onClose}>
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Text style={[styles.editorActionText, { color: theme.colors.body }]}>Close</Text>
             </AnimatedScaleTouchable>
             <AnimatedScaleTouchable
@@ -948,7 +1051,7 @@ const BackgroundPreview = React.memo(function BackgroundPreview({
   );
 });
 
-const createStyles = (theme) =>
+const createStyles = (theme, topInset) =>
   StyleSheet.create({
   container: {
     flex: 1,
@@ -958,7 +1061,8 @@ const createStyles = (theme) =>
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: Math.max(16, topInset + 8),
+    paddingBottom: 16,
   },
   headerTitle: {
       ...theme.typography.h2,
@@ -1147,10 +1251,25 @@ const createStyles = (theme) =>
       width: '80%',
       maxWidth: 400,
     },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: theme.spacing.xl,
+      position: 'relative',
+    },
     modalTitle: {
       ...theme.typography.h2,
-      marginBottom: theme.spacing.xl,
+      flex: 1,
       textAlign: 'center',
+    },
+    modalCloseButton: {
+      position: 'absolute',
+      right: 0,
+      padding: theme.spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1,
     },
     modalButton: {
       paddingVertical: theme.spacing.md + 2,
@@ -1254,6 +1373,41 @@ const createStyles = (theme) =>
     editorLabel: {
       ...theme.typography.body,
       fontWeight: '600',
+    },
+    contrastFallback: {
+      marginTop: theme.spacing.md,
+    },
+    contrastButtonsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: theme.spacing.md,
+    },
+    contrastButton: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.radii.full,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: theme.colors.card,
+    },
+    contrastValueDisplay: {
+      minWidth: 80,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.radii.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    contrastValueText: {
+      ...theme.typography.body,
+      fontWeight: '600',
+    },
+    contrastHint: {
+      ...theme.typography.caption,
+      textAlign: 'center',
+      marginTop: theme.spacing.sm,
     },
     slider: {
       width: '100%',
