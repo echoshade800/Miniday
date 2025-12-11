@@ -103,6 +103,7 @@ export default function CountdownsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       <View style={styles.header}>
+        <View style={styles.headerLeft} />
         <Text
           style={[styles.headerTitle, { color: theme.colors.text }]}
           numberOfLines={1}
@@ -145,13 +146,19 @@ const createStyles = (theme, tabBarHeight, topInset) =>
       paddingHorizontal: 24,
       paddingTop: Math.max(12, topInset + 8),
       paddingBottom: 8,
+      position: 'relative',
+    },
+    headerLeft: {
+      width: 40,
+      height: 40,
     },
     headerTitle: {
       ...theme.typography.h1,
       textAlign: 'center',
-      flex: 1,
+      position: 'absolute',
+      left: 0,
+      right: 0,
       flexShrink: 1,
-      marginRight: theme.spacing.md,
     },
     addCategoryButton: {
       width: 40,
@@ -162,6 +169,7 @@ const createStyles = (theme, tabBarHeight, topInset) =>
       ...theme.shadow.card,
       borderWidth: 1,
       backgroundColor: 'transparent',
+      flexShrink: 0,
     },
     listContent: {
       paddingHorizontal: theme.spacing.xl,
