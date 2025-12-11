@@ -23,7 +23,7 @@ export default function CountdownsScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = getTabBarTotalHeight(insets.bottom);
-  const styles = useMemo(() => createStyles(theme, tabBarHeight), [theme, tabBarHeight]);
+  const styles = useMemo(() => createStyles(theme, tabBarHeight, insets.top), [theme, tabBarHeight, insets.top]);
 
   useEffect(() => {
     loadEvents();
@@ -133,7 +133,7 @@ export default function CountdownsScreen() {
   );
 }
 
-const createStyles = (theme, tabBarHeight) =>
+const createStyles = (theme, tabBarHeight, topInset) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -143,7 +143,7 @@ const createStyles = (theme, tabBarHeight) =>
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 24,
-      paddingTop: 12,
+      paddingTop: Math.max(12, topInset + 8),
       paddingBottom: 8,
     },
     headerTitle: {

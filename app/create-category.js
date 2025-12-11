@@ -74,7 +74,11 @@ export default function CreateCategoryScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        nestedScrollEnabled={true}
+        scrollEnabled={true}
+        showsVerticalScrollIndicator={false}>
         <View style={styles.field}>
           <Text style={styles.label}>Category Name *</Text>
           <TextInput

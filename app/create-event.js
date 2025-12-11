@@ -20,7 +20,7 @@ import AnimatedScaleTouchable from '../components/AnimatedScaleTouchable';
 import CategoryIcon from '../components/CategoryIcon';
 import IconPicker from '../components/IconPicker';
 import { CATEGORY_ICON_METADATA } from '../components/CategoryIcons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerScroll from '../components/DateTimePickerScroll';
 import {
   scheduleEventNotification,
   cancelEventNotifications,
@@ -525,55 +525,11 @@ export default function CreateEventScreen() {
         />
       )}
 
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={showDatePicker}
-          animationType="slide"
-          transparent
-          presentationStyle="overFullScreen"
-          onRequestClose={cancelTargetPicker}>
-          <View style={styles.pickerModalWrapper}>
-            <TouchableWithoutFeedback onPress={cancelTargetPicker}>
-              <View style={styles.pickerModalBackdrop} />
-            </TouchableWithoutFeedback>
-            <View style={[styles.pickerModalContainer, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.pickerModalTitle, { color: theme.colors.title }]}>Select target date</Text>
-              <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
-                <DateTimePicker
-                  value={pendingTargetDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleTargetDateWheelChange}
-                  style={styles.iosPicker}
-                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
-                />
-              </View>
-              <View
-                style={[
-                  styles.iosPickerWrapper,
-                  styles.iosPickerSpacing,
-                  { backgroundColor: theme.colors.card },
-                ]}>
-                <DateTimePicker
-                  value={pendingTargetDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={handleTargetTimeWheelChange}
-                  style={styles.iosPicker}
-                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
-                />
-              </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.modalActionButton} onPress={cancelTargetPicker}>
-                  <Text style={[styles.modalActionText, { color: theme.colors.body }]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalActionButton} onPress={confirmTargetPicker}>
-                  <Text style={[styles.modalActionText, { color: theme.colors.primary }]}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+      {Platform.OS === 'ios' && showDatePicker && (
+        <DateTimePickerScroll
+          initialDate={pendingTargetDate}
+          onChange={setPendingTargetDate}
+        />
       )}
 
       {Platform.OS === 'android' && showReminderPicker && (
@@ -585,55 +541,11 @@ export default function CreateEventScreen() {
         />
       )}
 
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={showReminderPicker}
-          animationType="slide"
-          transparent
-          presentationStyle="overFullScreen"
-          onRequestClose={cancelReminderPicker}>
-          <View style={styles.pickerModalWrapper}>
-            <TouchableWithoutFeedback onPress={cancelReminderPicker}>
-              <View style={styles.pickerModalBackdrop} />
-            </TouchableWithoutFeedback>
-            <View style={[styles.pickerModalContainer, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.pickerModalTitle, { color: theme.colors.title }]}>Select reminder time</Text>
-              <View style={[styles.iosPickerWrapper, { backgroundColor: theme.colors.card }]}>
-                <DateTimePicker
-                  value={pendingReminderDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={handleReminderDateWheelChange}
-                  style={styles.iosPicker}
-                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
-                />
-              </View>
-              <View
-                style={[
-                  styles.iosPickerWrapper,
-                  styles.iosPickerSpacing,
-                  { backgroundColor: theme.colors.card },
-                ]}>
-                <DateTimePicker
-                  value={pendingReminderDate}
-                  mode="time"
-                  display="spinner"
-                  onChange={handleReminderTimeWheelChange}
-                  style={styles.iosPicker}
-                  textColor={Platform.OS === 'ios' ? theme.colors.title || '#111827' : undefined}
-                />
-              </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.modalActionButton} onPress={cancelReminderPicker}>
-                  <Text style={[styles.modalActionText, { color: theme.colors.body }]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalActionButton} onPress={confirmReminderPicker}>
-                  <Text style={[styles.modalActionText, { color: theme.colors.primary }]}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+      {Platform.OS === 'ios' && showReminderPicker && (
+        <DateTimePickerScroll
+          initialDate={pendingReminderDate}
+          onChange={setPendingReminderDate}
+        />
       )}
 
       {/* Icon Picker Modal */}

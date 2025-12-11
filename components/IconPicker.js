@@ -60,6 +60,7 @@ export default function IconPicker({ selectedIconKey, onSelectIcon, style }) {
         <TouchableOpacity
           style={styles.customHeader}
           activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           onPress={() => {
             setShowCustomIcons(!showCustomIcons);
           }}>
@@ -130,6 +131,8 @@ const createStyles = (theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
+      paddingVertical: 8,
+      minHeight: 44,
     },
     groupGrid: {
       flexDirection: 'row',

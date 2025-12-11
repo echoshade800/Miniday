@@ -18,7 +18,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import ViewShot from 'react-native-view-shot';
 import Slider from '@react-native-community/slider';
 import { useAppStore } from '../../store/useAppStore';
 import { calculateDaysDifference, formatDate } from '../../utils/dateUtils';
@@ -127,6 +126,8 @@ export default function DetailsScreen() {
   const [countdownMode, setCountdownMode] = useState('forward'); // 'forward' or 'backward'
   const [displayMode, setDisplayMode] = useState('days');
   const [backgroundEditorVisible, setBackgroundEditorVisible] = useState(false);
+  const [ViewShotComponent, setViewShotComponent] = useState(null);
+  const [viewShotAvailable, setViewShotAvailable] = useState(true);
   const shareViewRef = useRef(null);
 
   useEffect(() => {
@@ -143,6 +144,46 @@ export default function DetailsScreen() {
       router.replace('/(tabs)');
     }
   }, [params.id, events, categories]);
+
+  // Lazy-load react-native-view-shot to avoid crashes on platforms/arches where it's unsupported
+  useEffect(() => {
+    // Use a timeout to defer loading, ensuring component is mounted first
+    const loadViewShot = setTimeout(() => {
+      try {
+        // Check if module exists before requiring
+        if (typeof require !== 'undefined' && require.resolve) {
+          try {
+            require.resolve('react-native-view-shot');
+          } catch (resolveError) {
+            // Module not found, skip loading
+            console.warn('ViewShot module not found, share/save image disabled');
+            setViewShotAvailable(false);
+            return;
+          }
+        }
+        
+        // eslint-disable-next-line global-require
+        const mod = require('react-native-view-shot');
+        const Comp = mod?.default || mod;
+        
+        // Additional safety check: ensure it's a valid component
+        if (Comp && typeof Comp === 'function') {
+          setViewShotComponent(() => Comp);
+          setViewShotAvailable(true);
+        } else {
+          console.warn('ViewShot component invalid, share/save image disabled');
+          setViewShotAvailable(false);
+        }
+      } catch (error) {
+        // Catch any error during require or initialization
+        console.warn('ViewShot unavailable, share/save image disabled:', error?.message || error);
+        setViewShotAvailable(false);
+        setViewShotComponent(null);
+      }
+    }, 100); // Small delay to ensure component is stable
+    
+    return () => clearTimeout(loadViewShot);
+  }, []);
 
   const handleEdit = () => {
     router.push({
@@ -197,16 +238,34 @@ export default function DetailsScreen() {
   };
 
   const captureShareImage = async () => {
+    // Double-check availability before proceeding
+    if (!viewShotAvailable || !ViewShotComponent) {
+      Alert.alert('Not Supported', 'Share image is unavailable on this build.');
+      return null;
+    }
+
     if (!shareViewRef.current) {
       Alert.alert('Error', 'Unable to generate share image');
       return null;
     }
 
     try {
+      // Additional safety check: ensure capture method exists
+      if (typeof shareViewRef.current.capture !== 'function') {
+        console.error('ViewShot capture method not available');
+        Alert.alert('Error', 'Unable to generate share image');
+        return null;
+      }
+      
       return await shareViewRef.current.capture();
     } catch (error) {
       console.error('Error capturing share image:', error);
-      Alert.alert('Error', 'Unable to generate share image');
+      // Don't show alert if it's a known unsupported error
+      if (error?.message?.includes('not supported') || error?.message?.includes('unavailable')) {
+        Alert.alert('Not Supported', 'Share image is unavailable on this device.');
+      } else {
+        Alert.alert('Error', 'Unable to generate share image');
+      }
       return null;
     }
   };
@@ -521,38 +580,40 @@ export default function DetailsScreen() {
 
       </ScrollView>
 
-      {/* Hidden view for sharing - captures the event card */}
-      <View style={styles.hiddenShareView}>
-        <ViewShot ref={shareViewRef} options={{ format: 'png', quality: 1.0 }}>
-          <View style={styles.shareCardContainer}>
-            {hasCustomBackground ? (
-              <Image
-                source={{ uri: event.backgroundImage }}
-                style={styles.shareBackgroundImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <LinearGradient
-                colors={[theme.colors.card, theme.colors.accentLight]}
-                style={StyleSheet.absoluteFillObject}
-              />
-            )}
-            {hasCustomBackground && <View style={[styles.shareOverlay, { backgroundColor: overlayColor }]} />}
-            <View style={styles.shareCard}>
-              <Text style={[styles.shareEventTitle, { color: textColor }]} numberOfLines={2} ellipsizeMode="tail">
-                {event.title}
-              </Text>
-              <Text style={styles.shareCountdownText} numberOfLines={2} ellipsizeMode="tail">
-                <Text style={[styles.shareCountdownNumber, { color: textColor }]}>{displayValue}</Text>
-                <Text style={[styles.shareCountdownSuffix, { color: textColor }]}>{` ${distanceSuffix}`}</Text>
-              </Text>
-              <Text style={[styles.shareDateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
-                {formattedDateMemo}
-              </Text>
+      {/* Hidden view for sharing - captures the event card (only if ViewShot is available) */}
+      {viewShotAvailable && ViewShotComponent && typeof ViewShotComponent === 'function' ? (
+        <View style={styles.hiddenShareView} pointerEvents="none">
+          <ViewShotComponent ref={shareViewRef} options={{ format: 'png', quality: 1.0 }}>
+            <View style={styles.shareCardContainer}>
+              {hasCustomBackground ? (
+                <Image
+                  source={{ uri: event.backgroundImage }}
+                  style={styles.shareBackgroundImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <LinearGradient
+                  colors={[theme.colors.card, theme.colors.accentLight]}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              )}
+              {hasCustomBackground && <View style={[styles.shareOverlay, { backgroundColor: overlayColor }]} />}
+              <View style={styles.shareCard}>
+                <Text style={[styles.shareEventTitle, { color: textColor }]} numberOfLines={2} ellipsizeMode="tail">
+                  {event.title}
+                </Text>
+                <Text style={styles.shareCountdownText} numberOfLines={2} ellipsizeMode="tail">
+                  <Text style={[styles.shareCountdownNumber, { color: textColor }]}>{displayValue}</Text>
+                  <Text style={[styles.shareCountdownSuffix, { color: textColor }]}>{` ${distanceSuffix}`}</Text>
+                </Text>
+                <Text style={[styles.shareDateValue, { color: textColor }]} numberOfLines={1} ellipsizeMode="tail">
+                  {formattedDateMemo}
+                </Text>
+              </View>
             </View>
-          </View>
-        </ViewShot>
-      </View>
+          </ViewShotComponent>
+        </View>
+      ) : null}
 
       <BackgroundEditorModal
         visible={backgroundEditorVisible}
