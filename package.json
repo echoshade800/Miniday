@@ -21,7 +21,7 @@
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "@supabase/supabase-js": "^2.58.0",
-    "expo": "^54.0.25",
+    "expo": "^54.0.30",
     "expo-blur": "~15.0.7",
     "expo-camera": "~17.0.8",
     "expo-constants": "~18.0.9",
@@ -59,11 +59,11 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.888.0",
     "@babel/core": "^7.25.2",
     "@react-native-community/cli": "^20.0.2",
     "@react-native/metro-config": "^0.81.4",
     "@types/react": "~19.1.10",
-    "@aws-sdk/client-s3": "^3.888.0",
     "typescript": "~5.9.2"
   }
 }
